@@ -1,0 +1,93 @@
+[
+  {
+    "slug": "tiere",
+    "name": "Tiere",
+    "description": "Tier-Ausmalbilder: Pferde, Hunde, Katzen, Dinos und mehr — kostenlos zum Ausdrucken.",
+    "seoTitle": "Tier Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Entdecke kostenlose Tier-Ausmalbilder zum Ausdrucken: Pferde, Hunde, Schmetterlinge und viele mehr. Jetzt herunterladen oder online ausmalen!",
+    "seoTextLong": "",
+    "imageCount": 5,
+    "keywords": ["tier ausmalbilder", "tiere zum ausmalen", "tierbilder ausmalen"]
+  },
+  {
+    "slug": "tiere/pferd",
+    "name": "Pferd",
+    "parentSlug": "tiere",
+    "description": "Pferd Ausmalbilder — galoppierende Pferde, Fohlen, Einhörner und mehr. Kostenlos zum Ausdrucken oder online Ausmalen.",
+    "seoTitle": "Pferd Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "5 kostenlose Pferd Ausmalbilder zum Ausdrucken oder online Ausmalen. Für Kinder ab 3 Jahren — einfach, mittel und komplex. Jetzt gratis herunterladen!",
+    "seoTextLong": "Pferde gehören zu den beliebtesten Ausmalmotiven bei Kindern und Erwachsenen. Unsere Sammlung an Pferd Ausmalbildern bietet für jedes Alter und jeden Schwierigkeitsgrad das passende Motiv. Vom einfachen Pferd mit Fohlen für die Kleinsten ab 3 Jahren bis zum detaillierten Pferdekopf für fortgeschrittene Ausmaler — hier findet jeder sein Lieblingsbild.\n\nAlle Pferd Ausmalbilder sind kostenlos und können ohne Anmeldung als PDF heruntergeladen werden. Das druckfertige DIN-A4-Format sorgt dafür, dass jedes Bild perfekt auf dem Papier aussieht. Alternativ können alle Motive auch direkt hier auf der Website online ausgemalt werden — mit unserem kostenlosen Ausmaltool im Browser.\n\nUnsere Pferde-Motive umfassen galoppierende Pferde, friedlich grasende Pferde auf der Weide, liebevolle Szenen mit Stute und Fohlen sowie fantasievolle Einhörner. Die verschiedenen Schwierigkeitsgrade (einfach, mittel, komplex) machen die Bilder sowohl für Kindergartenkinder als auch für Grundschulkinder und sogar Erwachsene geeignet.\n\nDas Ausmalen von Pferdebildern fördert die Feinmotorik, Konzentration und Kreativität. Es ist eine wunderbare Beschäftigung für regnerische Nachmittage, lange Autofahrten (einfach vorher ausdrucken!) oder als Ergänzung zum Reitunterricht. Viele Kinder lieben es, die ausgemalten Bilder an die Wand zu hängen oder als Geschenk zu verschenken.\n\nTipp: Für besonders schöne Ergebnisse empfehlen wir hochwertige Buntstifte oder Filzstifte. Bei den realistischen Pferdemotiven können auch Aquarellstifte für sanfte Farbübergänge verwendet werden.",
+    "imageCount": 5,
+    "keywords": ["ausmalbilder pferd", "pferd ausmalbild", "pferde zum ausmalen", "pferd malvorlage kostenlos"]
+  },
+  {
+    "slug": "mandala",
+    "name": "Mandala",
+    "description": "Mandala Ausmalbilder — entspannende geometrische Muster für Kinder und Erwachsene.",
+    "seoTitle": "Mandala Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Mandala Ausmalbilder zum Ausdrucken. Entspannende Muster für Kinder und Erwachsene. Jetzt herunterladen oder online ausmalen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["mandala ausmalbilder", "mandalas zum ausdrucken", "mandala zum ausmalen"]
+  },
+  {
+    "slug": "saisonal/weihnachten",
+    "name": "Weihnachten",
+    "description": "Weihnachts-Ausmalbilder — Weihnachtsbaum, Schneemann, Rentier und mehr.",
+    "seoTitle": "Weihnachts Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Weihnachts-Ausmalbilder zum Ausdrucken: Weihnachtsbaum, Schneemann, Nikolaus und mehr. Jetzt herunterladen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["ausmalbild weihnachten", "weihnachts ausmalbilder", "weihnachten malvorlagen"]
+  },
+  {
+    "slug": "saisonal/ostern",
+    "name": "Ostern",
+    "description": "Oster-Ausmalbilder — Osterhasen, Ostereier, Küken und Frühlingsblumen.",
+    "seoTitle": "Oster Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Oster-Ausmalbilder zum Ausdrucken: Osterhasen, Ostereier und mehr. Jetzt herunterladen oder online ausmalen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["ausmalbild ostern", "oster ausmalbilder", "osterhase ausmalbild"]
+  },
+  {
+    "slug": "saisonal/halloween",
+    "name": "Halloween",
+    "description": "Halloween-Ausmalbilder — Kürbisse, Geister, Hexen und gruselige Motive.",
+    "seoTitle": "Halloween Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Halloween-Ausmalbilder zum Ausdrucken: Kürbisse, Geister, Hexen und mehr. Jetzt herunterladen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["halloween ausmalbilder", "halloween malvorlagen", "kürbis ausmalbild"]
+  },
+  {
+    "slug": "saisonal/herbst",
+    "name": "Herbst",
+    "description": "Herbst-Ausmalbilder — bunte Blätter, Igel, Pilze und Herbstlandschaften.",
+    "seoTitle": "Herbst Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Herbst-Ausmalbilder zum Ausdrucken: Blätter, Igel, Pilze und mehr. Jetzt herunterladen oder online ausmalen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["ausmalbild herbst", "herbst ausmalbilder", "herbst malvorlagen"]
+  },
+  {
+    "slug": "saisonal/fruehling",
+    "name": "Frühling",
+    "description": "Frühlings-Ausmalbilder — Blumen, Schmetterlinge, Marienkäfer und Frühlingswiesen.",
+    "seoTitle": "Frühlings Ausmalbilder kostenlos zum Ausdrucken | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Frühlings-Ausmalbilder zum Ausdrucken: Blumen, Schmetterlinge und mehr. Jetzt herunterladen!",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["ausmalbilder frühling", "frühling malvorlagen", "blumen ausmalbild"]
+  },
+  {
+    "slug": "erwachsene",
+    "name": "Erwachsene",
+    "description": "Ausmalbilder für Erwachsene — komplexe Mandalas, Zentangle-Muster und therapeutisches Ausmalen.",
+    "seoTitle": "Ausmalbilder für Erwachsene kostenlos | Ausmalbilder Gratis",
+    "seoDescription": "Kostenlose Ausmalbilder für Erwachsene: Detaillierte Mandalas, Zentangle und mehr. Entspannung durch kreatives Ausmalen.",
+    "seoTextLong": "",
+    "imageCount": 0,
+    "keywords": ["ausmalbilder für erwachsene", "erwachsene ausmalbilder", "mandala erwachsene"]
+  }
+]

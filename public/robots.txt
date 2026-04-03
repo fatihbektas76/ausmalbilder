@@ -1,0 +1,12 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Host
+Host: https://ausmalbilder-gratis.com
+
+# Sitemaps
+Sitemap: https://ausmalbilder-gratis.com/sitemap.xml
+Sitemap: https://ausmalbilder-gratis.com/sitemap-images.xml
