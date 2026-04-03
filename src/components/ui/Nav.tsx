@@ -16,12 +16,13 @@ export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-brand-indigo">
+    <nav className="sticky top-0 z-50 bg-white" style={{ borderBottom: '1px solid #E8E4DC' }}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="shrink-0 text-xl font-bold text-white">
-            Ausmalbilder Gratis
+          <Link href="/" className="shrink-0 text-xl font-bold">
+            <span style={{ color: '#1D1448' }}>ausmal</span>
+            <span style={{ color: '#E8490F' }}>bilder-gratis</span>
           </Link>
 
           {/* Desktop navigation links */}
@@ -30,7 +31,10 @@ export default function Nav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:text-white"
+                className="rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                style={{ color: '#555' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#1D1448')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
               >
                 {link.label}
               </Link>
@@ -51,12 +55,12 @@ export default function Nav() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-md p-2 text-white/80 transition-colors hover:text-white lg:hidden"
+            className="inline-flex items-center justify-center rounded-md p-2 transition-colors lg:hidden"
+            style={{ color: '#555' }}
             aria-expanded={mobileMenuOpen}
             aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"}
           >
             {mobileMenuOpen ? (
-              /* Close icon */
               <svg
                 className="h-6 w-6"
                 fill="none"
@@ -72,7 +76,6 @@ export default function Nav() {
                 />
               </svg>
             ) : (
-              /* Hamburger icon */
               <svg
                 className="h-6 w-6"
                 fill="none"
@@ -94,14 +97,15 @@ export default function Nav() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 lg:hidden">
+        <div className="border-t lg:hidden" style={{ borderColor: '#E8E4DC' }}>
           <div className="space-y-1 px-4 pb-4 pt-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block rounded-md px-3 py-2 text-base font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                className="block rounded-md px-3 py-2 text-base font-medium transition-colors hover:bg-gray-50"
+                style={{ color: '#555' }}
               >
                 {link.label}
               </Link>
