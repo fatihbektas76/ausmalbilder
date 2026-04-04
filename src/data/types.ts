@@ -32,4 +32,10 @@ export interface Category {
   seoTextLong: string
   imageCount: number
   keywords: string[]
+  thumbnails?: string[]
+  audience?: 'kinder' | 'erwachsene' | 'alle'
+  badge?: string
+  displayCount?: string
+  bgGradient?: string
+  href?: string
 }
