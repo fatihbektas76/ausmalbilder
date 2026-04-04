@@ -39,6 +39,114 @@ const BRUSH_SIZES: { label: string; width: number }[] = [
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 1131;
 const MAX_HISTORY = 20;
+const FILL_TOLERANCE = 32;
+
+// ---------------------------------------------------------------------------
+// Flood Fill — Scanline-basiert, Stack statt Rekursion (kein Stack Overflow)
+// ---------------------------------------------------------------------------
+type RGBA = [number, number, number, number];
+
+function hexToRgba(hex: string): RGBA {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  return [r, g, b, 255];
+}
+
+function getPixelIndex(x: number, y: number, width: number): number {
+  return (y * width + x) * 4;
+}
+
+function getPixelColor(data: Uint8ClampedArray, x: number, y: number, width: number): RGBA {
+  const i = getPixelIndex(x, y, width);
+  return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+}
+
+function colorsMatch(a: RGBA, b: RGBA, tolerance: number): boolean {
+  return (
+    Math.abs(a[0] - b[0]) <= tolerance &&
+    Math.abs(a[1] - b[1]) <= tolerance &&
+    Math.abs(a[2] - b[2]) <= tolerance &&
+    Math.abs(a[3] - b[3]) <= tolerance
+  );
+}
+
+function floodFill(
+  canvas: HTMLCanvasElement,
+  startX: number,
+  startY: number,
+  fillColorHex: string
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  const sx = Math.round(startX);
+  const sy = Math.round(startY);
+  if (sx < 0 || sx >= w || sy < 0 || sy >= h) return;
+
+  const targetColor = getPixelColor(data, sx, sy, w);
+  const fillColor = hexToRgba(fillColorHex);
+
+  // Abbruch wenn Klickfarbe bereits der Füllfarbe entspricht
+  if (colorsMatch(targetColor, fillColor, FILL_TOLERANCE)) return;
+
+  // Scanline Flood Fill — deutlich schneller als Pixel-für-Pixel-Push
+  const visited = new Uint8Array(w * h);
+  const stack: [number, number][] = [[sx, sy]];
+
+  while (stack.length > 0) {
+    const [x, y] = stack.pop()!;
+    if (x < 0 || x >= w || y < 0 || y >= h) continue;
+
+    const vi = y * w + x;
+    if (visited[vi]) continue;
+
+    const current = getPixelColor(data, x, y, w);
+    if (!colorsMatch(current, targetColor, FILL_TOLERANCE)) continue;
+
+    // Scanline: nach links expandieren
+    let left = x;
+    while (left > 0) {
+      const lv = y * w + (left - 1);
+      if (visited[lv]) break;
+      const lc = getPixelColor(data, left - 1, y, w);
+      if (!colorsMatch(lc, targetColor, FILL_TOLERANCE)) break;
+      left--;
+    }
+
+    // Scanline: nach rechts expandieren
+    let right = x;
+    while (right < w - 1) {
+      const rv = y * w + (right + 1);
+      if (visited[rv]) break;
+      const rc = getPixelColor(data, right + 1, y, w);
+      if (!colorsMatch(rc, targetColor, FILL_TOLERANCE)) break;
+      right++;
+    }
+
+    // Ganze Zeile füllen und oben/unten prüfen
+    for (let i = left; i <= right; i++) {
+      const idx = getPixelIndex(i, y, w);
+      data[idx] = fillColor[0];
+      data[idx + 1] = fillColor[1];
+      data[idx + 2] = fillColor[2];
+      data[idx + 3] = fillColor[3];
+      visited[y * w + i] = 1;
+
+      // Nachbar-Zeilen in Stack
+      if (y > 0 && !visited[(y - 1) * w + i]) stack.push([i, y - 1]);
+      if (y < h - 1 && !visited[(y + 1) * w + i]) stack.push([i, y + 1]);
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
 
 export default function ColoringTool({
   imageSrc,
@@ -226,26 +334,52 @@ export default function ColoringTool({
   }, [activeTool, activeColor, brushSize, fabricLoaded, canvasReady]);
 
   // ------------------------------------------------------------------
-  // Fill mode — click handler
+  // Fill mode — Scanline Flood Fill auf Canvas-Pixel
   // ------------------------------------------------------------------
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs || activeTool !== "fill") return;
+    if (!canvas || activeTool !== "fill") return;
 
     const handleMouseDown = (opt: any) => {
       const pointer = canvas.getPointer(opt.e);
-      const circle = new fabricNs.Circle({
-        left: pointer.x - 15,
-        top: pointer.y - 15,
-        radius: 15,
-        fill: activeColor,
-        selectable: false,
-        evented: false,
-      });
-      canvas.add(circle);
+
+      // Fabric-Canvas als reine Pixel rendern (alle Objekte + Hintergrund)
       canvas.renderAll();
-      saveState();
+      const upperEl = canvas.getElement();  // Das obere <canvas>-Element
+      if (!upperEl) return;
+
+      // Alle Fabric-Objekte + Hintergrund auf ein temporäres Canvas zusammenführen
+      const tmpCanvas = document.createElement("canvas");
+      tmpCanvas.width = CANVAS_WIDTH;
+      tmpCanvas.height = CANVAS_HEIGHT;
+      const tmpCtx = tmpCanvas.getContext("2d");
+      if (!tmpCtx) return;
+
+      // Fabric toCanvasElement rendert alles inkl. Hintergrundbild
+      const rendered = canvas.toCanvasElement();
+      tmpCtx.drawImage(rendered, 0, 0);
+
+      // Flood Fill auf dem temporären Canvas ausführen
+      floodFill(tmpCanvas, Math.round(pointer.x), Math.round(pointer.y), activeColor);
+
+      // Ergebnis als Bild zurück auf Fabric legen:
+      // Alle bisherigen Objekte entfernen, gefülltes Bild als neues Hintergrundbild setzen
+      const fabricNs = (window as any).__fabric;
+      if (!fabricNs) return;
+
+      const dataUrl = tmpCanvas.toDataURL("image/png");
+      fabricNs.Image.fromURL(
+        dataUrl,
+        (img: any) => {
+          if (!img) return;
+          canvas.getObjects().forEach((obj: any) => canvas.remove(obj));
+          canvas.setBackgroundImage(img, () => {
+            canvas.renderAll();
+            saveState();
+          });
+        },
+        { crossOrigin: "anonymous" }
+      );
     };
 
     canvas.on("mouse:down", handleMouseDown);
@@ -407,7 +541,7 @@ export default function ColoringTool({
               : "bg-[#F7F6F2] text-[#1D1448] hover:bg-[#E8490F]/10"
           }`}
         >
-          Fuellen
+          Füllen
         </button>
 
         {/* Brush */}
@@ -461,7 +595,7 @@ export default function ColoringTool({
           disabled={historyIndex <= 0}
           className="rounded-md bg-[#F7F6F2] px-3 py-2 text-sm font-medium text-[#1D1448] transition-colors hover:bg-[#1D1448]/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Rueckgaengig
+          Rückgängig
         </button>
 
         {/* Reset */}
@@ -469,7 +603,7 @@ export default function ColoringTool({
           onClick={handleReset}
           className="rounded-md bg-[#F7F6F2] px-3 py-2 text-sm font-medium text-[#1D1448] transition-colors hover:bg-[#1D1448]/10"
         >
-          Zuruecksetzen
+          Zurücksetzen
         </button>
 
         <div className="mx-1 h-6 w-px bg-[#1D1448]/10" />
@@ -541,8 +675,8 @@ export default function ColoringTool({
       {/* Fill toast */}
       {fillToastVisible && (
         <div className="mb-3 rounded-lg bg-[#FEF0EB] px-4 py-2 text-sm text-[#E8490F]">
-          Fuell-Modus aktiv: Klicke auf eine Stelle im Bild, um einen
-          Farbpunkt zu setzen.
+          Füll-Modus aktiv: Klicke auf einen Bereich im Bild, um ihn
+          mit der gewählten Farbe zu füllen.
         </div>
       )}
 
