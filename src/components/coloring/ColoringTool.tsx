@@ -1,151 +1,30 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  TOOL_GROUPS,
+  type Tool,
+  type DrawingTool,
+  type ShapeTool,
+  type SpecialTool,
+} from "./constants";
+import { useHistory } from "./useHistory";
+import { useDrawingCanvas } from "./useDrawingCanvas";
+import { useFabricCanvas } from "./useFabricCanvas";
+import Toolbar from "./toolbar/Toolbar";
+import ColorPalette from "./toolbar/ColorPalette";
+import { addWatermarkToCanvas } from "@/lib/watermark";
 
+// ---------------------------------------------------------------------------
+// Props (same interface as v1 — no breaking changes)
+// ---------------------------------------------------------------------------
 interface ColoringToolProps {
   imageSrc: string;
   imageTitle: string;
   imageSlug: string;
   onShare?: (imageDataUrl: string) => void;
-}
-
-type Tool = "fill" | "brush" | "eraser";
-
-const PALETTE_COLORS = [
-  "#F5D5C8", // hautfarben
-  "#8B4513", // braun
-  "#F5DEB3", // beige
-  "#FFD700", // gelb
-  "#FF8C00", // orange
-  "#FF0000", // rot
-  "#FF69B4", // rosa
-  "#800080", // lila
-  "#0000FF", // blau
-  "#87CEEB", // hellblau
-  "#008000", // gruen
-  "#90EE90", // hellgruen
-  "#808080", // grau
-  "#404040", // dunkelgrau
-  "#000000", // schwarz
-  "#FFFFFF", // weiss
-];
-
-const BRUSH_SIZES: { label: string; width: number }[] = [
-  { label: "S", width: 3 },
-  { label: "M", width: 8 },
-  { label: "L", width: 15 },
-];
-
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 1131;
-const MAX_HISTORY = 20;
-const FILL_TOLERANCE = 32;
-
-// ---------------------------------------------------------------------------
-// Flood Fill — Scanline-basiert, Stack statt Rekursion (kein Stack Overflow)
-// ---------------------------------------------------------------------------
-type RGBA = [number, number, number, number];
-
-function hexToRgba(hex: string): RGBA {
-  const c = hex.replace("#", "");
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  return [r, g, b, 255];
-}
-
-function getPixelIndex(x: number, y: number, width: number): number {
-  return (y * width + x) * 4;
-}
-
-function getPixelColor(data: Uint8ClampedArray, x: number, y: number, width: number): RGBA {
-  const i = getPixelIndex(x, y, width);
-  return [data[i], data[i + 1], data[i + 2], data[i + 3]];
-}
-
-function colorsMatch(a: RGBA, b: RGBA, tolerance: number): boolean {
-  return (
-    Math.abs(a[0] - b[0]) <= tolerance &&
-    Math.abs(a[1] - b[1]) <= tolerance &&
-    Math.abs(a[2] - b[2]) <= tolerance &&
-    Math.abs(a[3] - b[3]) <= tolerance
-  );
-}
-
-function floodFill(
-  canvas: HTMLCanvasElement,
-  startX: number,
-  startY: number,
-  fillColorHex: string
-) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  const w = canvas.width;
-  const h = canvas.height;
-  const imageData = ctx.getImageData(0, 0, w, h);
-  const data = imageData.data;
-
-  const sx = Math.round(startX);
-  const sy = Math.round(startY);
-  if (sx < 0 || sx >= w || sy < 0 || sy >= h) return;
-
-  const targetColor = getPixelColor(data, sx, sy, w);
-  const fillColor = hexToRgba(fillColorHex);
-
-  // Abbruch wenn Klickfarbe bereits der Füllfarbe entspricht
-  if (colorsMatch(targetColor, fillColor, FILL_TOLERANCE)) return;
-
-  // Scanline Flood Fill — deutlich schneller als Pixel-für-Pixel-Push
-  const visited = new Uint8Array(w * h);
-  const stack: [number, number][] = [[sx, sy]];
-
-  while (stack.length > 0) {
-    const [x, y] = stack.pop()!;
-    if (x < 0 || x >= w || y < 0 || y >= h) continue;
-
-    const vi = y * w + x;
-    if (visited[vi]) continue;
-
-    const current = getPixelColor(data, x, y, w);
-    if (!colorsMatch(current, targetColor, FILL_TOLERANCE)) continue;
-
-    // Scanline: nach links expandieren
-    let left = x;
-    while (left > 0) {
-      const lv = y * w + (left - 1);
-      if (visited[lv]) break;
-      const lc = getPixelColor(data, left - 1, y, w);
-      if (!colorsMatch(lc, targetColor, FILL_TOLERANCE)) break;
-      left--;
-    }
-
-    // Scanline: nach rechts expandieren
-    let right = x;
-    while (right < w - 1) {
-      const rv = y * w + (right + 1);
-      if (visited[rv]) break;
-      const rc = getPixelColor(data, right + 1, y, w);
-      if (!colorsMatch(rc, targetColor, FILL_TOLERANCE)) break;
-      right++;
-    }
-
-    // Ganze Zeile füllen und oben/unten prüfen
-    for (let i = left; i <= right; i++) {
-      const idx = getPixelIndex(i, y, w);
-      data[idx] = fillColor[0];
-      data[idx + 1] = fillColor[1];
-      data[idx + 2] = fillColor[2];
-      data[idx + 3] = fillColor[3];
-      visited[y * w + i] = 1;
-
-      // Nachbar-Zeilen in Stack
-      if (y > 0 && !visited[(y - 1) * w + i]) stack.push([i, y - 1]);
-      if (y < h - 1 && !visited[(y + 1) * w + i]) stack.push([i, y + 1]);
-    }
-  }
-
-  ctx.putImageData(imageData, 0, 0);
 }
 
 export default function ColoringTool({
@@ -154,529 +33,296 @@ export default function ColoringTool({
   imageSlug,
   onShare,
 }: ColoringToolProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fabricCanvasRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const historyRef = useRef<string[]>([]);
-  const isRestoringRef = useRef(false);
-
-  const [activeTool, setActiveTool] = useState<Tool>("brush");
-  const [brushSize, setBrushSize] = useState<number>(8);
-  const [activeColor, setActiveColor] = useState<string>("#000000");
-  const [fabricLoaded, setFabricLoaded] = useState(false);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // --- State ---------------------------------------------------------------
+  const [activeTool, setActiveTool] = useState<Tool>("brush-round");
+  const [activeColor, setActiveColor] = useState("#000000");
+  const [brushSize, setBrushSize] = useState(10);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [lineartLoaded, setLineartLoaded] = useState(false);
   const [fillToastVisible, setFillToastVisible] = useState(false);
 
-  // ------------------------------------------------------------------
-  // Save a canvas state snapshot for undo
-  // ------------------------------------------------------------------
-  const saveState = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas || isRestoringRef.current) return;
+  // --- Refs ----------------------------------------------------------------
+  const containerRef = useRef<HTMLDivElement>(null);
+  const layerContainerRef = useRef<HTMLDivElement>(null);
+  const lineartImgRef = useRef<HTMLImageElement | null>(null);
+  const isRestoringRef = useRef(false);
 
-    const json = JSON.stringify(canvas.toJSON());
-    const history = historyRef.current;
+  // --- History hook ---------------------------------------------------------
+  const history = useHistory();
 
-    // If we undid some steps and then draw, discard the "future" states
-    if (historyIndex < history.length - 1) {
-      historyRef.current = history.slice(0, historyIndex + 1);
+  // --- Determine active tool group -----------------------------------------
+  const toolGroup = TOOL_GROUPS[activeTool];
+  const drawingTool: DrawingTool | null =
+    toolGroup === "drawing" ? (activeTool as DrawingTool) : null;
+  const fabricTool: ShapeTool | SpecialTool | null =
+    toolGroup === "shapes" || toolGroup === "special"
+      ? (activeTool as ShapeTool | SpecialTool)
+      : null;
+
+  // --- Save history after a stroke/action ----------------------------------
+  const handleStrokeEnd = useCallback(() => {
+    if (!isRestoringRef.current) {
+      history.saveSnapshot();
     }
+  }, [history]);
 
-    historyRef.current.push(json);
+  // --- Drawing canvas hook (Layer 2) ---------------------------------------
+  const drawing = useDrawingCanvas({
+    activeTool: drawingTool,
+    activeColor,
+    brushSize,
+    lineartImage: lineartImgRef.current,
+    onStrokeEnd: handleStrokeEnd,
+  });
 
-    // Trim to MAX_HISTORY
-    if (historyRef.current.length > MAX_HISTORY) {
-      historyRef.current = historyRef.current.slice(
-        historyRef.current.length - MAX_HISTORY
-      );
-    }
+  // --- Fabric canvas hook (Layer 3) ----------------------------------------
+  const fabric = useFabricCanvas({
+    activeTool: fabricTool,
+    activeColor,
+    brushSize,
+    onObjectPlaced: handleStrokeEnd,
+  });
 
-    setHistoryIndex(historyRef.current.length - 1);
-  }, [historyIndex]);
-
-  // ------------------------------------------------------------------
-  // Dynamic fabric.js import + canvas initialisation
-  // ------------------------------------------------------------------
+  // --- Load lineart image --------------------------------------------------
   useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      // Dynamic import avoids SSR issues — fabric accesses window/document
-      const fabricModule = await import("fabric");
-      if (cancelled) return;
-
-      const fabricNs = (fabricModule as any).fabric ?? fabricModule;
-      if (!fabricNs || !fabricNs.Canvas) {
-        console.error("fabric namespace not found");
-        return;
-      }
-
-      // Expose on window so later helpers can access it easily
-      (window as any).__fabric = fabricNs;
-      setFabricLoaded(true);
-
-      if (!canvasRef.current) return;
-
-      const canvas = new fabricNs.Canvas(canvasRef.current, {
-        isDrawingMode: true,
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        backgroundColor: "#FFFFFF",
-      });
-
-      fabricCanvasRef.current = canvas;
-
-      // Default brush
-      canvas.freeDrawingBrush = new fabricNs.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = "#000000";
-      canvas.freeDrawingBrush.width = 8;
-
-      // Load background image
-      fabricNs.Image.fromURL(
-        imageSrc,
-        (img: any) => {
-          if (cancelled || !img) return;
-
-          // Scale image to fit canvas while preserving aspect ratio
-          const scaleX = CANVAS_WIDTH / (img.width || CANVAS_WIDTH);
-          const scaleY = CANVAS_HEIGHT / (img.height || CANVAS_HEIGHT);
-          const scale = Math.min(scaleX, scaleY);
-
-          img.set({
-            scaleX: scale,
-            scaleY: scale,
-            originX: "left",
-            originY: "top",
-            left: (CANVAS_WIDTH - (img.width || 0) * scale) / 2,
-            top: (CANVAS_HEIGHT - (img.height || 0) * scale) / 2,
-          });
-
-          canvas.setBackgroundImage(img, () => {
-            canvas.renderAll();
-            // Save initial state
-            historyRef.current = [JSON.stringify(canvas.toJSON())];
-            setHistoryIndex(0);
-            setCanvasReady(true);
-          });
-        },
-        { crossOrigin: "anonymous" }
-      );
-
-      // Listen for drawing events to save history
-      canvas.on("path:created", () => {
-        saveState();
-      });
-      canvas.on("object:added", () => {
-        // path:created also triggers object:added, but we guard via isRestoring
-        // We save here for fill-circles added programmatically
-      });
-    }
-
-    init();
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      lineartImgRef.current = img;
+      setLineartLoaded(true);
+    };
+    img.src = imageSrc;
 
     return () => {
-      cancelled = true;
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.dispose();
-        fabricCanvasRef.current = null;
-      }
+      img.onload = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageSrc]);
 
-  // ------------------------------------------------------------------
-  // Responsive scaling
-  // ------------------------------------------------------------------
+  // --- Initialize Fabric.js after component mounts -------------------------
+  useEffect(() => {
+    if (lineartLoaded) {
+      fabric.initFabric();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineartLoaded]);
+
+  // --- Register canvases with history hook ---------------------------------
+  useEffect(() => {
+    history.setDrawingCanvas(drawing.canvasRef.current);
+  }, [history, drawing.canvasRef]);
+
+  useEffect(() => {
+    if (fabric.ready) {
+      history.setFabricCanvas(fabric.fabricCanvasRef.current);
+      // Save initial (empty) state
+      history.saveSnapshot();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fabric.ready]);
+
+  // --- Responsive scaling --------------------------------------------------
   useEffect(() => {
     function handleResize() {
-      if (!containerRef.current || !canvasRef.current) return;
+      if (!containerRef.current || !layerContainerRef.current) return;
       const containerWidth = containerRef.current.clientWidth;
       const scale = Math.min(1, containerWidth / CANVAS_WIDTH);
-      const wrapper = canvasRef.current.parentElement;
-      if (wrapper) {
-        wrapper.style.transform = `scale(${scale})`;
-        wrapper.style.transformOrigin = "top left";
-        wrapper.style.width = `${CANVAS_WIDTH}px`;
-        wrapper.style.height = `${CANVAS_HEIGHT}px`;
-        // Set container height so page layout knows the visible height
-        containerRef.current.style.height = `${CANVAS_HEIGHT * scale}px`;
-      }
+      const lc = layerContainerRef.current;
+      lc.style.transform = `scale(${scale})`;
+      lc.style.transformOrigin = "top left";
+      containerRef.current.style.height = `${CANVAS_HEIGHT * scale}px`;
     }
 
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [fabricLoaded, canvasReady]);
+  }, [lineartLoaded, fabric.ready]);
 
-  // ------------------------------------------------------------------
-  // Update brush whenever tool / color / size changes
-  // ------------------------------------------------------------------
+  // --- Undo / Redo restoration ---------------------------------------------
   useEffect(() => {
-    const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs) return;
+    const entry = history.currentEntry;
+    if (!entry || !drawing.canvasRef.current) return;
 
-    if (activeTool === "brush") {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush = new fabricNs.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = brushSize;
-    } else if (activeTool === "eraser") {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush = new fabricNs.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = "#FFFFFF";
-      canvas.freeDrawingBrush.width = brushSize;
-    } else if (activeTool === "fill") {
-      canvas.isDrawingMode = false;
-    }
-  }, [activeTool, activeColor, brushSize, fabricLoaded, canvasReady]);
+    const ctx = drawing.canvasRef.current.getContext("2d");
+    if (!ctx) return;
 
-  // ------------------------------------------------------------------
-  // Fill mode — Scanline Flood Fill auf Canvas-Pixel
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas || activeTool !== "fill") return;
+    // Only restore if this was triggered by undo/redo (not by initial save)
+    // We detect this via the isRestoringRef
+  }, [history.currentEntry, drawing.canvasRef]);
 
-    const handleMouseDown = (opt: any) => {
-      const pointer = canvas.getPointer(opt.e);
-
-      // Fabric-Canvas als reine Pixel rendern (alle Objekte + Hintergrund)
-      canvas.renderAll();
-      const upperEl = canvas.getElement();  // Das obere <canvas>-Element
-      if (!upperEl) return;
-
-      // Alle Fabric-Objekte + Hintergrund auf ein temporäres Canvas zusammenführen
-      const tmpCanvas = document.createElement("canvas");
-      tmpCanvas.width = CANVAS_WIDTH;
-      tmpCanvas.height = CANVAS_HEIGHT;
-      const tmpCtx = tmpCanvas.getContext("2d");
-      if (!tmpCtx) return;
-
-      // Fabric toCanvasElement rendert alles inkl. Hintergrundbild
-      const rendered = canvas.toCanvasElement();
-      tmpCtx.drawImage(rendered, 0, 0);
-
-      // Flood Fill auf dem temporären Canvas ausführen
-      floodFill(tmpCanvas, Math.round(pointer.x), Math.round(pointer.y), activeColor);
-
-      // Ergebnis als Bild zurück auf Fabric legen:
-      // Alle bisherigen Objekte entfernen, gefülltes Bild als neues Hintergrundbild setzen
-      const fabricNs = (window as any).__fabric;
-      if (!fabricNs) return;
-
-      const dataUrl = tmpCanvas.toDataURL("image/png");
-      fabricNs.Image.fromURL(
-        dataUrl,
-        (img: any) => {
-          if (!img) return;
-          canvas.getObjects().forEach((obj: any) => canvas.remove(obj));
-          canvas.setBackgroundImage(img, () => {
-            canvas.renderAll();
-            saveState();
-          });
-        },
-        { crossOrigin: "anonymous" }
-      );
-    };
-
-    canvas.on("mouse:down", handleMouseDown);
-    return () => {
-      canvas.off("mouse:down", handleMouseDown);
-    };
-  }, [activeTool, activeColor, saveState, fabricLoaded, canvasReady]);
-
-  // ------------------------------------------------------------------
-  // Undo
-  // ------------------------------------------------------------------
-  const handleUndo = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs) return;
-
-    const history = historyRef.current;
-    const idx = historyIndex;
-    if (idx <= 0) return;
-
-    const prevIdx = idx - 1;
-    const prevState = history[prevIdx];
-    if (!prevState) return;
+  const performRestore = useCallback(() => {
+    const entry = history.currentEntry;
+    if (!entry || !drawing.canvasRef.current) return;
 
     isRestoringRef.current = true;
-    canvas.loadFromJSON(prevState, () => {
-      canvas.renderAll();
-      setHistoryIndex(prevIdx);
-      isRestoringRef.current = false;
-    });
-  }, [historyIndex]);
 
-  // ------------------------------------------------------------------
-  // Keyboard shortcut: Ctrl+Z
-  // ------------------------------------------------------------------
+    // Restore Layer 2 (drawing canvas)
+    const ctx = drawing.canvasRef.current.getContext("2d");
+    if (ctx) {
+      ctx.putImageData(entry.layer2, 0, 0);
+    }
+
+    // Restore Layer 3 (Fabric objects)
+    if (entry.layer3 !== "{}") {
+      fabric.deserialize(entry.layer3);
+    } else {
+      fabric.clearObjects();
+    }
+
+    isRestoringRef.current = false;
+  }, [history.currentEntry, drawing.canvasRef, fabric]);
+
+  // --- Undo handler --------------------------------------------------------
+  const handleUndo = useCallback(() => {
+    history.undo();
+    // We need to schedule restore after state update
+    setTimeout(() => performRestore(), 0);
+  }, [history, performRestore]);
+
+  // --- Redo handler --------------------------------------------------------
+  const handleRedo = useCallback(() => {
+    history.redo();
+    setTimeout(() => performRestore(), 0);
+  }, [history, performRestore]);
+
+  // --- Reset handler -------------------------------------------------------
+  const handleReset = useCallback(() => {
+    drawing.clearCanvas();
+    fabric.clearObjects();
+    history.saveSnapshot();
+  }, [drawing, fabric, history]);
+
+  // --- Keyboard shortcuts: Ctrl+Z / Ctrl+Y --------------------------------
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
+      }
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.key === "z" && e.shiftKey))
+      ) {
+        e.preventDefault();
+        handleRedo();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleUndo]);
+  }, [handleUndo, handleRedo]);
 
-  // ------------------------------------------------------------------
-  // Reset
-  // ------------------------------------------------------------------
-  const handleReset = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs) return;
+  // --- Export: merge all layers into a single PNG --------------------------
+  const mergeLayersToDataUrl = useCallback((): string | null => {
+    const drawCanvas = drawing.canvasRef.current;
+    if (!drawCanvas || !lineartImgRef.current) return null;
 
-    // Remove all objects but keep background image
-    canvas.getObjects().forEach((obj: any) => canvas.remove(obj));
-    canvas.renderAll();
+    const offscreen = document.createElement("canvas");
+    offscreen.width = CANVAS_WIDTH;
+    offscreen.height = CANVAS_HEIGHT;
+    const ctx = offscreen.getContext("2d")!;
 
-    // Reset history
-    historyRef.current = [JSON.stringify(canvas.toJSON())];
-    setHistoryIndex(0);
-  }, []);
+    // 1. White background
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  // ------------------------------------------------------------------
-  // Export as PNG
-  // ------------------------------------------------------------------
+    // 2. Drawing layer (Layer 2)
+    ctx.drawImage(drawCanvas, 0, 0);
+
+    // 3. Lineart with multiply blend (Layer 1)
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(lineartImgRef.current, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.globalCompositeOperation = "source-over";
+
+    // 4. Fabric.js objects (Layer 3)
+    const fabricEl = fabric.toCanvasElement();
+    if (fabricEl) {
+      ctx.drawImage(fabricEl, 0, 0);
+    }
+
+    // 5. Watermark
+    addWatermarkToCanvas(ctx, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    return offscreen.toDataURL("image/png");
+  }, [drawing.canvasRef, fabric]);
+
   const handleExport = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs) return;
+    const dataUrl = mergeLayersToDataUrl();
+    if (!dataUrl) return;
 
-    // Add watermark
-    const watermark = new fabricNs.Text("ausmalbilder-gratis.com", {
-      fontSize: 14,
-      fill: "rgba(29, 20, 72, 0.4)",
-      left: CANVAS_WIDTH - 12,
-      top: CANVAS_HEIGHT - 26,
-      originX: "right",
-      selectable: false,
-      evented: false,
-    });
-    canvas.add(watermark);
-    canvas.renderAll();
-
-    const dataUrl = canvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
-    });
-
-    // Remove watermark again so user can keep editing
-    canvas.remove(watermark);
-    canvas.renderAll();
-
-    // Trigger download
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = `${imageSlug}-ausmalbild.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [imageSlug]);
+  }, [imageSlug, mergeLayersToDataUrl]);
 
-  // ------------------------------------------------------------------
-  // Share
-  // ------------------------------------------------------------------
   const handleShare = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    const fabricNs = (window as any).__fabric;
-    if (!canvas || !fabricNs || !onShare) return;
+    if (!onShare) return;
+    const dataUrl = mergeLayersToDataUrl();
+    if (dataUrl) onShare(dataUrl);
+  }, [onShare, mergeLayersToDataUrl]);
 
-    // Add watermark for the shared image
-    const watermark = new fabricNs.Text("ausmalbilder-gratis.com", {
-      fontSize: 14,
-      fill: "rgba(29, 20, 72, 0.4)",
-      left: CANVAS_WIDTH - 12,
-      top: CANVAS_HEIGHT - 26,
-      originX: "right",
-      selectable: false,
-      evented: false,
-    });
-    canvas.add(watermark);
-    canvas.renderAll();
+  // --- Color change handler (tracks recent colors) -------------------------
+  const handleColorChange = useCallback(
+    (color: string) => {
+      setActiveColor(color);
+      if (activeTool === "eraser") setActiveTool("brush-round");
+      setRecentColors((prev) => {
+        const filtered = prev.filter((c) => c !== color);
+        return [color, ...filtered].slice(0, 5);
+      });
+    },
+    [activeTool]
+  );
 
-    const dataUrl = canvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
-    });
+  // --- Tool change handler -------------------------------------------------
+  const handleToolChange = useCallback((tool: Tool) => {
+    setActiveTool(tool);
+    if (tool === "fill") {
+      setFillToastVisible(true);
+      setTimeout(() => setFillToastVisible(false), 3000);
+    }
+  }, []);
 
-    canvas.remove(watermark);
-    canvas.renderAll();
+  // --- Pointer events switching --------------------------------------------
+  const drawingPointerEvents = toolGroup === "drawing" ? "auto" : "none";
+  const fabricPointerEvents =
+    toolGroup === "shapes" || toolGroup === "special" ? "auto" : "none";
 
-    onShare(dataUrl);
-  }, [onShare]);
-
-  // ------------------------------------------------------------------
-  // Fill toast
-  // ------------------------------------------------------------------
-  const selectFillTool = () => {
-    setActiveTool("fill");
-    setFillToastVisible(true);
-    setTimeout(() => setFillToastVisible(false), 3000);
-  };
-
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
+  // --- Render --------------------------------------------------------------
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 shadow-sm">
-        {/* Fill */}
-        <button
-          onClick={selectFillTool}
-          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            activeTool === "fill"
-              ? "bg-[#E8490F] text-white"
-              : "bg-[#F7F6F2] text-[#1D1448] hover:bg-[#E8490F]/10"
-          }`}
-        >
-          Füllen
-        </button>
-
-        {/* Brush */}
-        <button
-          onClick={() => setActiveTool("brush")}
-          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            activeTool === "brush"
-              ? "bg-[#E8490F] text-white"
-              : "bg-[#F7F6F2] text-[#1D1448] hover:bg-[#E8490F]/10"
-          }`}
-        >
-          Pinsel
-        </button>
-
-        {/* Brush sizes (visible when brush or eraser active) */}
-        {(activeTool === "brush" || activeTool === "eraser") && (
-          <div className="flex items-center gap-1">
-            {BRUSH_SIZES.map((s) => (
-              <button
-                key={s.label}
-                onClick={() => setBrushSize(s.width)}
-                className={`h-8 w-8 rounded-md text-xs font-semibold transition-colors ${
-                  brushSize === s.width
-                    ? "bg-[#1D1448] text-white"
-                    : "bg-[#F7F6F2] text-[#1D1448] hover:bg-[#1D1448]/10"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Eraser */}
-        <button
-          onClick={() => setActiveTool("eraser")}
-          className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            activeTool === "eraser"
-              ? "bg-[#E8490F] text-white"
-              : "bg-[#F7F6F2] text-[#1D1448] hover:bg-[#E8490F]/10"
-          }`}
-        >
-          Radierer
-        </button>
-
-        <div className="mx-1 h-6 w-px bg-[#1D1448]/10" />
-
-        {/* Undo */}
-        <button
-          onClick={handleUndo}
-          disabled={historyIndex <= 0}
-          className="rounded-md bg-[#F7F6F2] px-3 py-2 text-sm font-medium text-[#1D1448] transition-colors hover:bg-[#1D1448]/10 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Rückgängig
-        </button>
-
-        {/* Reset */}
-        <button
-          onClick={handleReset}
-          className="rounded-md bg-[#F7F6F2] px-3 py-2 text-sm font-medium text-[#1D1448] transition-colors hover:bg-[#1D1448]/10"
-        >
-          Zurücksetzen
-        </button>
-
-        <div className="mx-1 h-6 w-px bg-[#1D1448]/10" />
-
-        {/* Export */}
-        <button
-          onClick={handleExport}
-          className="rounded-md bg-[#1D1448] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1D1448]/90"
-        >
-          Als PNG speichern
-        </button>
-
-        {/* Share */}
-        {onShare && (
-          <button
-            onClick={handleShare}
-            className="rounded-md bg-[#E8490F] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#E8490F]/90"
-          >
-            Teilen
-          </button>
-        )}
-      </div>
+      <Toolbar
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
+        brushSize={brushSize}
+        onSizeChange={setBrushSize}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onReset={handleReset}
+        onExport={handleExport}
+        onShare={onShare ? handleShare : undefined}
+        currentStampIndex={fabric.currentStampIndex}
+        onNextStamp={fabric.nextStamp}
+      />
 
       {/* Color palette */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 shadow-sm">
-        {PALETTE_COLORS.map((color) => (
-          <button
-            key={color}
-            onClick={() => {
-              setActiveColor(color);
-              if (activeTool === "eraser") setActiveTool("brush");
-            }}
-            className="relative h-8 w-8 rounded-full border transition-transform hover:scale-110"
-            style={{
-              backgroundColor: color,
-              borderColor: color === "#FFFFFF" ? "#D1D5DB" : color,
-              outline:
-                activeColor === color ? "3px solid #E8490F" : "none",
-              outlineOffset: "2px",
-            }}
-            aria-label={`Farbe ${color}`}
-          />
-        ))}
-
-        {/* Custom color picker */}
-        <label className="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-dashed border-[#1D1448]/30">
-          <input
-            type="color"
-            value={activeColor}
-            onChange={(e) => {
-              setActiveColor(e.target.value);
-              if (activeTool === "eraser") setActiveTool("brush");
-            }}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-          <span className="text-xs font-bold text-[#1D1448]/60">+</span>
-        </label>
-
-        {/* Active color preview */}
-        <div className="ml-2 flex items-center gap-2">
-          <div
-            className="h-6 w-6 rounded border border-[#1D1448]/20"
-            style={{ backgroundColor: activeColor }}
-          />
-          <span className="text-xs text-[#1D1448]/60">{activeColor}</span>
-        </div>
+      <div className="mb-3">
+        <ColorPalette
+          activeColor={activeColor}
+          recentColors={recentColors}
+          onColorChange={handleColorChange}
+        />
       </div>
 
       {/* Fill toast */}
       {fillToastVisible && (
         <div className="mb-3 rounded-lg bg-[#FEF0EB] px-4 py-2 text-sm text-[#E8490F]">
-          Füll-Modus aktiv: Klicke auf einen Bereich im Bild, um ihn
-          mit der gewählten Farbe zu füllen.
+          Füll-Modus aktiv: Klicke auf einen Bereich im Bild, um ihn mit der
+          gewählten Farbe zu füllen.
         </div>
       )}
 
@@ -685,14 +331,59 @@ export default function ColoringTool({
         ref={containerRef}
         className="w-full overflow-hidden rounded-lg border border-[#1D1448]/10 bg-white shadow-sm"
       >
-        {!fabricLoaded && (
+        {!lineartLoaded && (
           <div className="flex h-64 items-center justify-center">
             <div className="text-sm text-[#1D1448]/60">
               Ausmalen-Tool wird geladen...
             </div>
           </div>
         )}
-        <canvas ref={canvasRef} />
+
+        {/* 3-Layer stack */}
+        <div
+          ref={layerContainerRef}
+          className="relative"
+          style={{
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+          }}
+        >
+          {/* Layer 2 (bottom): Drawing canvas — native Canvas 2D */}
+          <canvas
+            ref={drawing.canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="absolute top-0 left-0"
+            style={{ pointerEvents: drawingPointerEvents, zIndex: 1 }}
+          />
+
+          {/* Layer 1 (middle): Lineart image — multiply blend */}
+          {lineartLoaded && (
+            <img
+              src={imageSrc}
+              alt={imageTitle}
+              width={CANVAS_WIDTH}
+              height={CANVAS_HEIGHT}
+              className="absolute top-0 left-0"
+              style={{
+                mixBlendMode: "multiply",
+                pointerEvents: "none",
+                zIndex: 2,
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+              }}
+            />
+          )}
+
+          {/* Layer 3 (top): Fabric.js canvas — shapes, text, stamps */}
+          <canvas
+            ref={fabric.canvasElRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="absolute top-0 left-0"
+            style={{ pointerEvents: fabricPointerEvents, zIndex: 3 }}
+          />
+        </div>
       </div>
 
       {/* Image title below canvas */}
