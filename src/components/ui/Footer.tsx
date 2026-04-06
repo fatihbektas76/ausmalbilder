@@ -16,6 +16,7 @@ const rechtlichesLinks = [
 const featuresLinks = [
   { label: "Online Ausmalen", href: "/online-ausmalen" },
   { label: "PDF Download", href: "/ausmalbilder" },
+  { label: "Blog", href: "/blog" },
   { label: "Community (coming soon)", href: "#" },
 ];
 

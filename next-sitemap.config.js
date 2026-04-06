@@ -10,7 +10,7 @@ module.exports = {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        disallow: ['/api/', '/_next/', '/admin/'],
       },
     ],
     additionalSitemaps: [
@@ -18,18 +18,33 @@ module.exports = {
     ],
   },
   transform: async (config, path) => {
-    // Higher priority for main pages
     let priority = 0.7
     let changefreq = 'weekly'
 
     if (path === '/') {
       priority = 1.0
       changefreq = 'daily'
-    } else if (path === '/ausmalbilder' || path === '/mandala') {
+    } else if (path === '/ausmalbilder' || path === '/blog') {
       priority = 0.9
       changefreq = 'daily'
-    } else if (path.includes('/tiere/pferd/') && path.split('/').length > 3) {
+    } else if (path.split('/').length === 2 && !path.startsWith('/blog')) {
+      // Top-level category pages like /tiere, /mandala
+      priority = 0.85
+      changefreq = 'weekly'
+    } else if (path.split('/').length === 3 && !path.startsWith('/blog')) {
+      // Sub-category pages like /tiere/pferd
       priority = 0.8
+      changefreq = 'weekly'
+    } else if (path.split('/').length >= 4) {
+      // Individual image pages like /tiere/pferd/pferd-im-galopp
+      priority = 0.8
+      changefreq = 'monthly'
+    } else if (path.startsWith('/blog/')) {
+      priority = 0.8
+      changefreq = 'monthly'
+    } else if (['/impressum', '/datenschutz', '/agb'].includes(path)) {
+      priority = 0.3
+      changefreq = 'yearly'
     }
 
     return {
@@ -39,4 +54,5 @@ module.exports = {
       lastmod: new Date().toISOString(),
     }
   },
+  exclude: ['/admin', '/admin/*', '/api/*'],
 }

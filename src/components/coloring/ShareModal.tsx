@@ -26,6 +26,7 @@ export default function ShareModal({
   const [selectedFormat, setSelectedFormat] = useState<ShareFormat>("standard");
   const [copied, setCopied] = useState(false);
   const [supportsNativeShare, setSupportsNativeShare] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Check for native share support (client-side only)
   useEffect(() => {
@@ -127,6 +128,53 @@ export default function ShareModal({
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  // ------------------------------------------------------------------
+  // Instagram handler
+  // ------------------------------------------------------------------
+  const handleInstagram = useCallback(async () => {
+    if (supportsNativeShare) {
+      // Mobile: use native share
+      await handleNativeShare();
+    } else {
+      // Desktop: copy link
+      try {
+        await navigator.clipboard.writeText(pageUrl);
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = pageUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setToast("Link kopiert — in Instagram einfügen");
+      setTimeout(() => setToast(null), 3000);
+    }
+  }, [supportsNativeShare, handleNativeShare, pageUrl]);
+
+  // ------------------------------------------------------------------
+  // TikTok handler
+  // ------------------------------------------------------------------
+  const handleTikTok = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(pageUrl);
+    } catch {
+      // fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = pageUrl;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setToast("Link kopiert — in TikTok einfügen");
+    setTimeout(() => setToast(null), 3000);
+  }, [pageUrl]);
 
   // ------------------------------------------------------------------
   // Download the image in selected format
@@ -266,7 +314,7 @@ export default function ShareModal({
         <h3 className="mb-3 text-sm font-medium text-[#1D1448]">
           Direkt teilen
         </h3>
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="mb-4 grid grid-cols-3 gap-2">
           {/* Pinterest */}
           <button
             onClick={openPinterest}
@@ -315,6 +363,38 @@ export default function ShareModal({
             Facebook
           </button>
 
+          {/* Instagram */}
+          <button
+            onClick={handleInstagram}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#E1306C]/10 px-3 py-2.5 text-sm font-medium text-[#E1306C] transition-colors hover:bg-[#E1306C]/20"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+            </svg>
+            Instagram
+          </button>
+
+          {/* TikTok */}
+          <button
+            onClick={handleTikTok}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#000000]/10 px-3 py-2.5 text-sm font-medium text-[#000000] transition-colors hover:bg-[#000000]/20"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.84 2.84 0 0 1 .97.17V9.03a6.33 6.33 0 0 0-1-.05A6.34 6.34 0 0 0 3 15.34 6.34 6.34 0 0 0 9.46 21.7a6.34 6.34 0 0 0 6.34-6.34V9.01a8.24 8.24 0 0 0 4.83 1.56V7.12a4.79 4.79 0 0 1-1.04-.43z" />
+            </svg>
+            TikTok
+          </button>
+
           {/* Copy link */}
           <button
             onClick={handleCopyLink}
@@ -336,6 +416,13 @@ export default function ShareModal({
             {copied ? "Kopiert!" : "Link kopieren"}
           </button>
         </div>
+
+        {/* Toast notification */}
+        {toast && (
+          <div className="mt-3 rounded-lg bg-green-50 px-4 py-2 text-center text-sm text-green-700">
+            {toast}
+          </div>
+        )}
 
         {/* Native share */}
         {supportsNativeShare && (

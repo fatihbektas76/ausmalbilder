@@ -13,6 +13,7 @@ export interface ColoringImage {
   thumbnailUrl: string
   pdfUrl: string
   svgUrl?: string
+  pinterestUrl?: string
   altText: string
   seoDescription: string
   seoTextShort: string
@@ -20,6 +21,25 @@ export interface ColoringImage {
   downloadCount?: number
   publishedAt: string
   seasonal?: 'weihnachten' | 'ostern' | 'halloween' | 'herbst' | 'fruehling'
+
+  // Bilingual fields (DE + EN)
+  titleDE?: string
+  titleEN?: string
+  slugDE?: string
+  slugEN?: string
+  titleSeoDE?: string
+  titleSeoEN?: string
+  metaTitleDE?: string
+  metaTitleEN?: string
+  metaDescDE?: string
+  metaDescEN?: string
+  altTextDE?: string
+  altTextEN?: string
+}
+
+export interface FaqItem {
+  question: string
+  answer: string
 }
 
 export interface Category {
@@ -27,9 +47,13 @@ export interface Category {
   name: string
   parentSlug?: string
   description: string
+  introText?: string
   seoTitle: string
   seoDescription: string
   seoTextLong: string
+  seoTextTitle?: string
+  metaKeywords?: string
+  faqItems?: FaqItem[]
   imageCount: number
   keywords: string[]
   thumbnails?: string[]
@@ -38,4 +62,34 @@ export interface Category {
   displayCount?: string
   bgGradient?: string
   href?: string
+  coloringTips?: string
+}
+
+export type BlogCategory =
+  | 'stressabbau'
+  | 'kinder-entwicklung'
+  | 'kreativitaet'
+  | 'ratgeber'
+  | 'saisonal'
+
+export interface BlogArticle {
+  slug: string
+  title: string
+  titleSeo: string
+  metaTitle: string
+  metaDescription: string
+  category: BlogCategory
+  tags: string[]
+  author: string
+  publishedAt: string
+  updatedAt: string
+  readingTime: number
+  featuredImage: string
+  featuredImageAlt: string
+  excerpt: string
+  content: string
+  relatedArticles: string[]
+  relatedImages: string[]
+  faq: FaqItem[]
+  status?: 'draft' | 'live'
 }

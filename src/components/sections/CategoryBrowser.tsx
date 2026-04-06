@@ -3,8 +3,36 @@
 import { useState } from "react";
 import Link from "next/link";
 import categoriesData from "@/data/categories.json";
-import type { Category } from "@/data/types";
+import type { Category, ColoringImage } from "@/data/types";
 import CategoryCard from "./CategoryCard";
+
+// Import image data for categories that have real images
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const imageModules: Record<string, ColoringImage[]> = {};
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  imageModules["tiere/pferd"] = require("@/data/images/tiere-pferd.json");
+} catch { /* no images yet */ }
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  imageModules["tiere/elefant"] = require("@/data/images/tiere-elefant.json");
+} catch { /* no images yet */ }
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  imageModules["tiere/loewen"] = require("@/data/images/tiere-loewen.json");
+} catch { /* no images yet */ }
+
+function getRealThumbnails(slug: string): string[] {
+  // For parent categories (e.g. "tiere"), collect thumbnails from all child modules
+  const childSlugs = Object.keys(imageModules).filter(k => k.startsWith(slug + "/"));
+  if (childSlugs.length > 0) {
+    const allImages = childSlugs.flatMap(k => imageModules[k] || []);
+    if (allImages.length > 0) return allImages.slice(0, 4).map(img => img.thumbnailUrl);
+  }
+  const images = imageModules[slug];
+  if (!images || images.length === 0) return [];
+  return images.slice(0, 4).map((img) => img.thumbnailUrl);
+}
 
 type FilterTab = "Alle" | "Kinder" | "Erwachsene";
 
@@ -12,7 +40,7 @@ const tabs: FilterTab[] = ["Alle", "Kinder", "Erwachsene"];
 
 // Which categories appear on the homepage (in this order)
 const HOMEPAGE_SLUGS = [
-  "tiere/pferd",
+  "tiere",
   "mandala",
   "fantasie/drachen",
   "natur/blume",
@@ -69,17 +97,23 @@ export default function CategoryBrowser() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {filtered.map((cat) => (
-            <CategoryCard
-              key={cat.slug}
-              name={cat.name}
-              href={cat.href || `/${cat.slug}/`}
-              count={cat.displayCount || `${cat.imageCount} Bilder`}
-              badge={cat.badge}
-              thumbnails={cat.thumbnails || []}
-              bgGradient={cat.bgGradient}
-            />
-          ))}
+          {filtered.map((cat) => {
+            // Use real image thumbnails if available, fall back to SVG placeholders
+            const realThumbs = getRealThumbnails(cat.slug);
+            const thumbnails = realThumbs.length > 0 ? realThumbs : (cat.thumbnails || []);
+
+            return (
+              <CategoryCard
+                key={cat.slug}
+                name={cat.name}
+                href={cat.href || `/${cat.slug}/`}
+                count={cat.displayCount || `${cat.imageCount} Bilder`}
+                badge={cat.badge}
+                thumbnails={thumbnails}
+                bgGradient={cat.bgGradient}
+              />
+            );
+          })}
 
           {/* "+ Alle Kategorien" card */}
           <Link

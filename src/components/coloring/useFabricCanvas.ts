@@ -4,17 +4,15 @@ import {
   CANVAS_HEIGHT,
   STAR_PATH,
   HEART_PATH,
-  STAMPS,
   type ShapeTool,
-  type SpecialTool,
 } from "./constants";
 
 // ---------------------------------------------------------------------------
-// Fabric.js Canvas Hook — Shapes, Text, Stamps (Layer 3)
+// Fabric.js Canvas Hook — Shapes with drag-to-draw (Layer 3, v3)
 // ---------------------------------------------------------------------------
 
 interface UseFabricCanvasOptions {
-  activeTool: ShapeTool | SpecialTool | null;
+  activeTool: ShapeTool | null;
   activeColor: string;
   brushSize: number;
   onObjectPlaced: () => void;
@@ -31,10 +29,13 @@ export function useFabricCanvas({
   const fabricCanvasRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fabricNsRef = useRef<any>(null);
+  const wrapperRef = useRef<HTMLElement | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Active stamp index (0-3, cycles through STAMPS)
-  const stampIndexRef = useRef(0);
+  // Drag-to-draw state
+  const drawStartRef = useRef<{ x: number; y: number } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const previewObjRef = useRef<any>(null);
 
   // --- Initialize Fabric.js ------------------------------------------------
   const initFabric = useCallback(async () => {
@@ -56,11 +57,17 @@ export function useFabricCanvas({
     canvas.isDrawingMode = false;
     fabricCanvasRef.current = canvas;
 
-    // Position the wrapper correctly (Fabric creates a wrapper div)
-    if (canvas.wrapperEl) {
-      canvas.wrapperEl.style.position = "absolute";
-      canvas.wrapperEl.style.top = "0";
-      canvas.wrapperEl.style.left = "0";
+    // Position the wrapper correctly (Fabric v7 creates a div[data-fabric="wrapper"])
+    const wrapper =
+      canvas.wrapperEl ??
+      canvasElRef.current?.closest("[data-fabric=wrapper]") ??
+      canvasElRef.current?.parentElement;
+    if (wrapper && wrapper !== canvasElRef.current) {
+      wrapper.style.position = "absolute";
+      wrapper.style.top = "0";
+      wrapper.style.left = "0";
+      wrapper.style.zIndex = "3";
+      wrapperRef.current = wrapper as HTMLElement;
     }
 
     setReady(true);
@@ -76,33 +83,91 @@ export function useFabricCanvas({
     };
   }, []);
 
-  // --- Shape placement via click -------------------------------------------
+  // --- Drag-to-draw for shapes ---------------------------------------------
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
     const fabricNs = fabricNsRef.current;
     if (!canvas || !fabricNs || !activeTool) return;
 
-    const isShape = ["circle", "rect", "star", "heart", "flower"].includes(activeTool);
-    const isSpecial = ["text", "stamp"].includes(activeTool);
-    if (!isShape && !isSpecial) return;
+    const isShape = ["circle", "rect", "star", "heart", "triangle"].includes(activeTool);
+    if (!isShape) return;
 
-    // Disable selection mode for placement tools
+    // Disable selection and drawing mode for shape placement
     canvas.isDrawingMode = false;
-    canvas.selection = activeTool === "text"; // Allow selection for text editing
+    canvas.selection = false;
 
-    const handleClick = (opt: any) => {
-      const pointer = canvas.getPointer(opt.e);
-      const x = pointer.x;
-      const y = pointer.y;
+    const handleMouseDown = (opt: any) => {
+      // Ignore if clicking on an existing object
+      if (opt.target) return;
+
+      // Fabric.js v7: use opt.scenePoint (getPointer was removed)
+      const pointer = opt.scenePoint ?? canvas.getScenePoint(opt.e);
+      drawStartRef.current = { x: pointer.x, y: pointer.y };
+
+      // Create a dashed preview rect to show the bounding area
+      const preview = new fabricNs.Rect({
+        left: pointer.x,
+        top: pointer.y,
+        width: 0,
+        height: 0,
+        fill: "transparent",
+        stroke: "#999",
+        strokeWidth: 1,
+        strokeDashArray: [4, 4],
+        selectable: false,
+        evented: false,
+      });
+
+      previewObjRef.current = preview;
+      canvas.add(preview);
+      canvas.renderAll();
+    };
+
+    const handleMouseMove = (opt: any) => {
+      if (!drawStartRef.current || !previewObjRef.current) return;
+
+      const pointer = opt.scenePoint ?? canvas.getScenePoint(opt.e);
+      const start = drawStartRef.current;
+      const preview = previewObjRef.current;
+
+      const left = Math.min(start.x, pointer.x);
+      const top = Math.min(start.y, pointer.y);
+      const width = Math.abs(pointer.x - start.x);
+      const height = Math.abs(pointer.y - start.y);
+
+      preview.set({ left, top, width, height });
+      canvas.renderAll();
+    };
+
+    const handleMouseUp = (opt: any) => {
+      if (!drawStartRef.current) return;
+
+      const pointer = opt.scenePoint ?? canvas.getScenePoint(opt.e);
+      const start = drawStartRef.current;
+
+      // Remove preview
+      if (previewObjRef.current) {
+        canvas.remove(previewObjRef.current);
+        previewObjRef.current = null;
+      }
+      drawStartRef.current = null;
+
+      // Calculate final size (use the larger dimension, minimum 20px)
+      const dragW = Math.abs(pointer.x - start.x);
+      const dragH = Math.abs(pointer.y - start.y);
+      const size = Math.max(Math.max(dragW, dragH), 20);
+
+      // Position at the top-left of the drag area
+      const left = Math.min(start.x, pointer.x);
+      const top = Math.min(start.y, pointer.y);
 
       let obj: any = null;
-      const size = brushSize * 3;
 
       switch (activeTool) {
         case "circle":
           obj = new fabricNs.Circle({
-            left: x - size / 2,
-            top: y - size / 2,
+            left,
+            top,
             radius: size / 2,
             fill: activeColor,
             stroke: "",
@@ -112,8 +177,8 @@ export function useFabricCanvas({
 
         case "rect":
           obj = new fabricNs.Rect({
-            left: x - size / 2,
-            top: y - size / 2,
+            left,
+            top,
             width: size,
             height: size,
             fill: activeColor,
@@ -124,8 +189,8 @@ export function useFabricCanvas({
 
         case "star":
           obj = new fabricNs.Path(STAR_PATH, {
-            left: x - size / 2,
-            top: y - size / 2,
+            left,
+            top,
             fill: activeColor,
             stroke: "",
             scaleX: size / 100,
@@ -135,8 +200,8 @@ export function useFabricCanvas({
 
         case "heart":
           obj = new fabricNs.Path(HEART_PATH, {
-            left: x - size / 2,
-            top: y - size / 2,
+            left,
+            top,
             fill: activeColor,
             stroke: "",
             scaleX: size / 100,
@@ -144,67 +209,48 @@ export function useFabricCanvas({
           });
           break;
 
-        case "flower":
-          // Simple circle cluster for flower
-          obj = new fabricNs.Circle({
-            left: x - size / 2,
-            top: y - size / 2,
-            radius: size / 2,
-            fill: activeColor,
-            stroke: activeColor,
-            strokeWidth: 2,
-          });
+        case "triangle":
+          obj = new fabricNs.Polygon(
+            [
+              { x: size / 2, y: 0 },
+              { x: size, y: size },
+              { x: 0, y: size },
+            ],
+            {
+              left,
+              top,
+              fill: activeColor,
+              stroke: "",
+              strokeWidth: 0,
+            }
+          );
           break;
-
-        case "text":
-          obj = new fabricNs.IText("Text", {
-            left: x,
-            top: y,
-            fontSize: brushSize * 2,
-            fill: activeColor,
-            fontFamily: "Segoe UI, system-ui, sans-serif",
-          });
-          break;
-
-        case "stamp": {
-          const stamp = STAMPS[stampIndexRef.current % STAMPS.length];
-          obj = new fabricNs.Path(stamp.path, {
-            left: x - size / 2,
-            top: y - size / 2,
-            fill: activeColor,
-            stroke: "",
-            scaleX: (size / 24) * stamp.scale,
-            scaleY: (size / 24) * stamp.scale,
-            selectable: false,
-            evented: false,
-          });
-          break;
-        }
       }
 
       if (obj) {
         canvas.add(obj);
-        if (activeTool === "text") {
-          canvas.setActiveObject(obj);
-          obj.enterEditing();
-        }
         canvas.renderAll();
         onObjectPlaced();
       }
     };
 
-    canvas.on("mouse:down", handleClick);
+    canvas.on("mouse:down", handleMouseDown);
+    canvas.on("mouse:move", handleMouseMove);
+    canvas.on("mouse:up", handleMouseUp);
+
     return () => {
-      canvas.off("mouse:down", handleClick);
+      canvas.off("mouse:down", handleMouseDown);
+      canvas.off("mouse:move", handleMouseMove);
+      canvas.off("mouse:up", handleMouseUp);
+
+      // Clean up any lingering preview
+      if (previewObjRef.current) {
+        canvas.remove(previewObjRef.current);
+        previewObjRef.current = null;
+      }
+      drawStartRef.current = null;
     };
   }, [activeTool, activeColor, brushSize, onObjectPlaced, ready]);
-
-  // --- Cycle stamp type ----------------------------------------------------
-  const nextStamp = useCallback(() => {
-    stampIndexRef.current = (stampIndexRef.current + 1) % STAMPS.length;
-  }, []);
-
-  const currentStampIndex = stampIndexRef.current;
 
   // --- Clear all objects ---------------------------------------------------
   const clearObjects = useCallback(() => {
@@ -230,10 +276,17 @@ export function useFabricCanvas({
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     try {
-      canvas.loadFromJSON(json, () => {
+      // Fabric.js v7: loadFromJSON returns a Promise (no callback)
+      const result = canvas.loadFromJSON(json);
+      if (result && typeof result.then === "function") {
+        result.then(() => {
+          canvas.backgroundColor = "";
+          canvas.renderAll();
+        });
+      } else {
         canvas.backgroundColor = "";
         canvas.renderAll();
-      });
+      }
     } catch {
       // ignore invalid JSON
     }
@@ -253,13 +306,12 @@ export function useFabricCanvas({
   return {
     canvasElRef,
     fabricCanvasRef,
+    wrapperRef,
     initFabric,
     ready,
     clearObjects,
     serialize,
     deserialize,
     toCanvasElement,
-    nextStamp,
-    currentStampIndex,
   };
 }

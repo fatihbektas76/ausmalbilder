@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { label: "Dashboard", href: "/admin" },
   { label: "Upload", href: "/admin/upload" },
+  { label: "Kategorien", href: "/admin/categories" },
   { label: "Bilder", href: "/admin/images" },
+  { label: "Blog", href: "/admin/blog" },
 ];
 
 export default function AdminLayout({

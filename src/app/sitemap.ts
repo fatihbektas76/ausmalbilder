@@ -1,33 +1,39 @@
 import type { MetadataRoute } from 'next'
-import imagesData from '@/data/images/tiere-pferd.json'
+import { loadCategories, loadAllImages } from '@/lib/load-data'
 
 const BASE_URL = 'https://ausmalbilder-gratis.com'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const staticPages = [
-    { url: BASE_URL, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 1.0 },
-    { url: `${BASE_URL}/ausmalbilder`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.9 },
-    { url: `${BASE_URL}/tiere`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.8 },
-    { url: `${BASE_URL}/tiere/pferd`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.8 },
-    { url: `${BASE_URL}/mandala`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.8 },
-    { url: `${BASE_URL}/erwachsene`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/online-ausmalen`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/saisonal/weihnachten`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/saisonal/ostern`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/saisonal/halloween`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/saisonal/herbst`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/saisonal/fruehling`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${BASE_URL}/impressum`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
-    { url: `${BASE_URL}/datenschutz`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
-    { url: `${BASE_URL}/agb`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const categories = loadCategories()
+  const allImages = await loadAllImages()
+
+  // Static pages
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: BASE_URL, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
+    { url: `${BASE_URL}/ausmalbilder`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE_URL}/blog`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
+    { url: `${BASE_URL}/online-ausmalen`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/impressum`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${BASE_URL}/datenschutz`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
   ]
 
-  const imagePages = imagesData.map((image) => ({
-    url: `${BASE_URL}/${image.category}/${image.slug}`,
-    lastModified: new Date(image.publishedAt),
-    changeFrequency: 'monthly' as const,
-    priority: 0.8,
+  // Category pages (auto-generated from categories.json)
+  const categoryPages: MetadataRoute.Sitemap = categories.map((cat) => ({
+    url: `${BASE_URL}/${cat.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: cat.parentSlug ? 0.8 : 0.85,
   }))
 
-  return [...staticPages, ...imagePages]
+  // Individual image pages (auto-generated from all image JSONs)
+  const imagePages: MetadataRoute.Sitemap = allImages
+    .filter((img) => img.publishedAt)
+    .map((img) => ({
+      url: `${BASE_URL}/${img.category}/${img.slug}`,
+      lastModified: new Date(img.publishedAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    }))
+
+  return [...staticPages, ...categoryPages, ...imagePages]
 }

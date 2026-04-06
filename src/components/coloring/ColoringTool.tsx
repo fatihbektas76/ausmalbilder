@@ -8,7 +8,6 @@ import {
   type Tool,
   type DrawingTool,
   type ShapeTool,
-  type SpecialTool,
 } from "./constants";
 import { useHistory } from "./useHistory";
 import { useDrawingCanvas } from "./useDrawingCanvas";
@@ -54,10 +53,8 @@ export default function ColoringTool({
   const toolGroup = TOOL_GROUPS[activeTool];
   const drawingTool: DrawingTool | null =
     toolGroup === "drawing" ? (activeTool as DrawingTool) : null;
-  const fabricTool: ShapeTool | SpecialTool | null =
-    toolGroup === "shapes" || toolGroup === "special"
-      ? (activeTool as ShapeTool | SpecialTool)
-      : null;
+  const fabricTool: ShapeTool | null =
+    toolGroup === "shapes" ? (activeTool as ShapeTool) : null;
 
   // --- Save history after a stroke/action ----------------------------------
   const handleStrokeEnd = useCallback(() => {
@@ -286,8 +283,22 @@ export default function ColoringTool({
 
   // --- Pointer events switching --------------------------------------------
   const drawingPointerEvents = toolGroup === "drawing" ? "auto" : "none";
-  const fabricPointerEvents =
-    toolGroup === "shapes" || toolGroup === "special" ? "auto" : "none";
+  const fabricPointerEvents = toolGroup === "shapes" ? "auto" : "none";
+
+  // Fabric v7: pointer-events must be set on the wrapper div, not the inner canvas
+  useEffect(() => {
+    if (fabric.wrapperRef.current) {
+      fabric.wrapperRef.current.style.pointerEvents = fabricPointerEvents;
+    }
+  }, [fabricPointerEvents, fabric.wrapperRef]);
+
+  // --- Cursor style per tool -----------------------------------------------
+  const cursorStyle =
+    activeTool === "eraser"
+      ? "cell"
+      : activeTool === "fill"
+        ? "crosshair"
+        : "crosshair";
 
   // --- Render --------------------------------------------------------------
   return (
@@ -305,8 +316,6 @@ export default function ColoringTool({
         onReset={handleReset}
         onExport={handleExport}
         onShare={onShare ? handleShare : undefined}
-        currentStampIndex={fabric.currentStampIndex}
-        onNextStamp={fabric.nextStamp}
       />
 
       {/* Color palette */}
@@ -330,6 +339,7 @@ export default function ColoringTool({
       <div
         ref={containerRef}
         className="w-full overflow-hidden rounded-lg border border-[#1D1448]/10 bg-white shadow-sm"
+        style={{ cursor: cursorStyle }}
       >
         {!lineartLoaded && (
           <div className="flex h-64 items-center justify-center">
@@ -375,13 +385,13 @@ export default function ColoringTool({
             />
           )}
 
-          {/* Layer 3 (top): Fabric.js canvas — shapes, text, stamps */}
+          {/* Layer 3 (top): Fabric.js canvas — shapes
+              Fabric v7 wraps this in a div[data-fabric="wrapper"]
+              pointer-events and z-index are set on the wrapper via useEffect */}
           <canvas
             ref={fabric.canvasElRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="absolute top-0 left-0"
-            style={{ pointerEvents: fabricPointerEvents, zIndex: 3 }}
           />
         </div>
       </div>

@@ -82,3 +82,21 @@ export function generateSeoFields(
 export function categoryToJsonName(categorySlug: string): string {
   return categorySlug.replace(/\//g, "-");
 }
+
+/**
+ * Generate bilingual metadata from DE + EN titles.
+ */
+export function generateBilingualMetadata(titleDE: string, titleEN: string) {
+  return {
+    slugDE: slugify(titleDE, { lower: true, strict: true, locale: "de" }),
+    slugEN: slugify(titleEN, { lower: true, strict: true }),
+    titleSeoDE: `${titleDE} — Ausmalbild kostenlos`,
+    titleSeoEN: `${titleEN} Coloring Page — Free Printable`,
+    metaTitleDE: `${titleDE} Ausmalbild kostenlos | Ausmalbilder Gratis`,
+    metaTitleEN: `${titleEN} Coloring Page Free | Free Coloring Pages`,
+    metaDescDE: `Kostenloses ${titleDE} Ausmalbild. PDF herunterladen oder online ausmalen — ohne Anmeldung, gratis.`,
+    metaDescEN: `Free ${titleEN} coloring page. Download as PDF or color online — no sign-up required.`,
+    altTextDE: `${titleDE} Ausmalbild kostenlos zum Ausdrucken`,
+    altTextEN: `${titleEN} coloring page free printable`,
+  };
+}

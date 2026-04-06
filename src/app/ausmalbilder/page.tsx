@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 const categories = [
-  { name: 'Pferde', href: '/tiere/pferd', count: '50+', emoji: '🐴' },
+  { name: 'Tiere', href: '/tiere', count: '200+', emoji: '🦁' },
   { name: 'Mandala', href: '/mandala', count: '30+', emoji: '🔮' },
   { name: 'Weihnachten', href: '/saisonal/weihnachten', count: '40+', emoji: '🎄' },
   { name: 'Halloween', href: '/saisonal/halloween', count: '35+', emoji: '🎃' },

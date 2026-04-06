@@ -9,6 +9,7 @@ import sharp from "sharp";
 export async function processImage(inputBuffer: Buffer): Promise<{
   webpBuffer: Buffer;
   thumbBuffer: Buffer;
+  pinterestBuffer: Buffer;
   width: number;
   height: number;
 }> {
@@ -29,7 +30,13 @@ export async function processImage(inputBuffer: Buffer): Promise<{
     .webp({ quality: 80 })
     .toBuffer();
 
-  return { webpBuffer, thumbBuffer, width, height };
+  // Pinterest-optimized format (1000x1500, white background)
+  const pinterestBuffer = await sharp(inputBuffer)
+    .resize(1000, 1500, { fit: "contain", background: "#ffffff" })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+
+  return { webpBuffer, thumbBuffer, pinterestBuffer, width, height };
 }
 
 /**

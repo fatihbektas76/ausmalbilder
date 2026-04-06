@@ -89,15 +89,14 @@ export default function ImageCard({
 
         {/* Action buttons */}
         <div className="mt-3 flex flex-col gap-2">
-          <a
-            href={pdfUrl}
-            download
+          <Link
+            href={`/${category}/${slug}?action=download`}
             className="inline-flex w-full items-center justify-center rounded-lg bg-brand-coral px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             PDF herunterladen
-          </a>
+          </Link>
           <Link
-            href={`/${category}/${slug}`}
+            href={`/${category}/${slug}#ausmalen`}
             className="inline-flex w-full items-center justify-center rounded-lg border border-brand-indigo px-4 py-2 text-sm font-semibold text-brand-indigo transition-colors hover:bg-brand-indigo hover:text-white"
           >
             Online ausmalen

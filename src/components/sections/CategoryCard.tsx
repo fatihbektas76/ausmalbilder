@@ -25,22 +25,25 @@ export default function CategoryCard({
 }: CategoryCardProps) {
   const len = thumbnails.length;
 
-  // Random start index
-  const [currentIndex, setCurrentIndex] = useState(
-    () => (len > 0 ? Math.floor(Math.random() * len) : 0)
-  );
+  // Start at index 0 to avoid hydration mismatch (server vs client)
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isFading, setIsFading] = useState(false);
 
   // Refs for stable interval logic
   const isHoveredRef = useRef(false);
-  const nextIndexRef = useRef(currentIndex);
+  const nextIndexRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const offsetRef = useRef(Math.random() * 3000);
+  const offsetRef = useRef(0);
 
   // Keep nextIndexRef in sync
   useEffect(() => {
     nextIndexRef.current = currentIndex;
   }, [currentIndex]);
+
+  // Set random offset after mount (client-only)
+  useEffect(() => {
+    offsetRef.current = Math.random() * 3000;
+  }, []);
 
   // Preload all thumbnails
   useEffect(() => {

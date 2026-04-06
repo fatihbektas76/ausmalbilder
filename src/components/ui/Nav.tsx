@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Saisonal", href: "/saisonal/weihnachten" },
   { label: "Erwachsene", href: "/erwachsene" },
   { label: "Online Ausmalen", href: "/online-ausmalen" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export default function Nav() {
