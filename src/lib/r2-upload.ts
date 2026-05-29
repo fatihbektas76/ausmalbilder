@@ -3,42 +3,51 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { writeFile, mkdir, unlink } from "fs/promises";
+import path from "path";
 
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ACCOUNT_ID
-    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-    : "http://localhost:9000", // fallback for local dev
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
+const ENDPOINT = process.env.S3_ENDPOINT;
+const REGION = process.env.S3_REGION || "fr-par";
+const BUCKET = process.env.S3_BUCKET;
+const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
+const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
+const ASSETS_URL = process.env.NEXT_PUBLIC_ASSETS_URL;
 
-const BUCKET = process.env.R2_BUCKET_NAME || "ausmalbilder-gratis-assets";
-const ASSETS_URL =
-  process.env.NEXT_PUBLIC_ASSETS_URL || "/uploads"; // fallback to local
+const isConfigured = Boolean(
+  ENDPOINT && BUCKET && ACCESS_KEY_ID && SECRET_ACCESS_KEY && ASSETS_URL
+);
+
+const s3 = isConfigured
+  ? new S3Client({
+      region: REGION,
+      endpoint: ENDPOINT,
+      credentials: {
+        accessKeyId: ACCESS_KEY_ID!,
+        secretAccessKey: SECRET_ACCESS_KEY!,
+      },
+    })
+  : null;
 
 /**
- * Upload a file to Cloudflare R2.
- * Returns the public URL.
+ * Upload a file to S3-compatible object storage (Scaleway, R2, etc.).
+ * Falls back to local `public/uploads` when env vars are missing (dev only).
  */
 export async function uploadToR2(
   key: string,
   buffer: Buffer,
   contentType: string
 ): Promise<string> {
-  // If no R2 credentials, save locally instead
-  if (!process.env.R2_ACCESS_KEY_ID) {
+  if (!s3) {
     return saveLocally(key, buffer);
   }
 
   await s3.send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: BUCKET!,
       Key: key,
       Body: buffer,
       ContentType: contentType,
+      ACL: "public-read",
     })
   );
 
@@ -46,26 +55,24 @@ export async function uploadToR2(
 }
 
 /**
- * Delete a file from R2.
+ * Delete a file from object storage.
  */
 export async function deleteFromR2(key: string): Promise<void> {
-  if (!process.env.R2_ACCESS_KEY_ID) {
+  if (!s3) {
     return deleteLocally(key);
   }
 
   await s3.send(
     new DeleteObjectCommand({
-      Bucket: BUCKET,
+      Bucket: BUCKET!,
       Key: key,
     })
   );
 }
 
 // ---------------------------------------------------------------------------
-// Local fallback (when R2 is not configured)
+// Local fallback (dev only — Vercel filesystem is read-only at runtime)
 // ---------------------------------------------------------------------------
-import { writeFile, mkdir, unlink } from "fs/promises";
-import path from "path";
 
 async function saveLocally(key: string, buffer: Buffer): Promise<string> {
   const dir = path.join(process.cwd(), "public", "uploads", path.dirname(key));

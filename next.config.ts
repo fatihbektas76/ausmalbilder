@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'assets.ausmalbilder-gratis.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'ausmalbilder-gratis-assets.s3.fr-par.scw.cloud',
+      },
     ],
   },
 };
