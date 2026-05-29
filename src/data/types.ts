@@ -35,6 +35,35 @@ export interface ColoringImage {
   metaDescEN?: string
   altTextDE?: string
   altTextEN?: string
+
+  // LLM-generated enrichment for SEO/GEO (Gemini)
+  enrichment?: ImageEnrichment
+  enrichmentGeneratedAt?: string
+}
+
+export interface TierSteckbrief {
+  lebensraum: string
+  groesse: string
+  futter: string
+  lebenserwartung: string
+  besonderheit: string
+}
+
+export interface ImageEnrichment {
+  /** 300–400 word motif-specific SEO long text (Markdown allowed) */
+  seoTextLong: string
+  /** 5 motif-specific bullet facts */
+  motivFakten: string[]
+  /** Animal profile — only for tier/* categories, otherwise undefined */
+  tierSteckbrief?: TierSteckbrief
+  /** Educational/developmental aspects, 3–5 bullets */
+  lernziele: string[]
+  /** Concrete color suggestions, 3–5 bullets */
+  farbempfehlungen: string[]
+  /** 5 motif-specific FAQs (replaces the generic 3) */
+  customFaqs: FaqItem[]
+  /** LSI keywords used for the SEO text — surface as a tag cloud */
+  semanticKeywords: string[]
 }
 
 export interface FaqItem {

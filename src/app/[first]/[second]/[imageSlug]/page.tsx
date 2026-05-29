@@ -9,6 +9,7 @@ import FaqSection from '@/components/ui/FaqSection'
 import RelatedImages from '@/components/ui/RelatedImages'
 import ColoringToolWrapper from '@/components/templates/ColoringToolWrapper'
 import AutoDownload from '@/components/ui/AutoDownload'
+import EnrichmentSections from '@/components/image/EnrichmentSections'
 
 const difficultyColors = {
   einfach: 'bg-green-100 text-green-800',
@@ -181,8 +182,8 @@ ${image.title} gehört zur Kategorie ${categoryName}. Weitere beliebte ${categor
 
 Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für das beste Ergebnis auf DIN-A4-Papier. Für besonders schöne Ergebnisse empfehlen wir Buntstifte oder Filzstifte mit wasserfester Tinte.`
 
-  // --- Dynamic FAQs ---
-  const faqItems = [
+  // --- FAQs: prefer LLM-generated motif-specific ones, fall back to generics ---
+  const genericFaqs = [
     {
       question: `Ist das ${image.title} Ausmalbild wirklich kostenlos?`,
       answer: `Ja — das ${image.title} Ausmalbild ist 100% kostenlos und ohne Anmeldung als PDF herunterladbar. Alle Ausmalbilder auf ausmalbilder-gratis.com sind dauerhaft gratis.`,
@@ -196,6 +197,10 @@ Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für da
       answer: `Ja — mit unserem kostenlosen Online-Ausmaltool kannst du das ${image.title} Bild direkt im Browser ausmalen. Kein Download, keine Installation. Anschließend als PNG speichern oder auf Pinterest und WhatsApp teilen.`,
     },
   ]
+  const faqItems =
+    image.enrichment?.customFaqs && image.enrichment.customFaqs.length > 0
+      ? [...image.enrichment.customFaqs, ...genericFaqs.slice(0, 2)]
+      : genericFaqs
 
   const absolutize = (u: string) =>
     u.startsWith('http://') || u.startsWith('https://')
@@ -483,11 +488,19 @@ Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für da
           </div>
         </div>
 
-        {/* 8. SEO-Textblock */}
+        {/* 8. SEO-Textblock — prefer LLM-enriched long text if available */}
         <SeoText
           title={`${image.title} — Ausmalbild für ${image.ageMin <= 5 ? 'Kleinkinder' : image.ageMin <= 12 ? 'Kinder' : 'Erwachsene'}`}
-          content={image.seoTextLong || seoTextDynamic}
+          content={image.enrichment?.seoTextLong || image.seoTextLong || seoTextDynamic}
         />
+
+        {/* 8b. LLM-generated enrichment sections — only render when we have data */}
+        {image.enrichment && (
+          <EnrichmentSections
+            enrichment={image.enrichment}
+            imageTitle={image.title}
+          />
+        )}
 
         {/* 9. FAQ-Sektion */}
         <FaqSection

@@ -14,6 +14,7 @@ import {
   generateSeoFields,
   generateBilingualMetadata,
 } from "@/lib/slug-generator";
+import { enrichImageContent } from "@/lib/llm-enrich";
 import slugify from "slugify";
 import type { ColoringImage } from "@/data/types";
 
@@ -105,6 +106,17 @@ export async function POST(request: NextRequest) {
     // Generate SEO fields (DE — backward compatible)
     const seo = generateSeoFields(finalTitleDE, categorySlug, ageMin);
 
+    // LLM enrichment (parallel with the rest — best effort, doesn't block)
+    const enrichment = await enrichImageContent({
+      title: finalTitleDE,
+      categorySlug,
+      categoryName: validCategory.name,
+      difficulty: difficulty as "einfach" | "mittel" | "komplex",
+      ageMin,
+      orientation: "hochformat",
+      style: "cartoon",
+    });
+
     // Generate bilingual metadata if EN title provided
     const bilingual =
       finalTitleEN
@@ -149,6 +161,9 @@ export async function POST(request: NextRequest) {
       metaDescEN: bilingual?.metaDescEN || undefined,
       altTextDE: bilingual?.altTextDE || seo.altText,
       altTextEN: bilingual?.altTextEN || undefined,
+
+      enrichment: enrichment || undefined,
+      enrichmentGeneratedAt: enrichment ? new Date().toISOString() : undefined,
     };
 
     // Save images JSON to Scaleway
