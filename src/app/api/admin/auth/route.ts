@@ -1,15 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const COOKIE_NAME = "admin_session";
 const SESSION_VALUE = "authenticated";
 
+function getAdminPassword(): string | null {
+  const pw = process.env.ADMIN_PASSWORD;
+  if (!pw || pw.length < 8) return null;
+  return pw;
+}
+
 export async function POST(request: NextRequest) {
+  const adminPassword = getAdminPassword();
+  if (!adminPassword) {
+    console.error(
+      "ADMIN_PASSWORD is not configured (or too short). Admin login disabled."
+    );
+    return NextResponse.json(
+      { error: "Admin-Login ist nicht konfiguriert." },
+      { status: 503 }
+    );
+  }
+
   const body = await request.json();
   const { password } = body;
 
-  if (password !== ADMIN_PASSWORD) {
+  if (typeof password !== "string" || password !== adminPassword) {
     return NextResponse.json({ error: "Falsches Passwort" }, { status: 401 });
   }
 
