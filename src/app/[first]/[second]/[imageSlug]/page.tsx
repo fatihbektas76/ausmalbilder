@@ -29,7 +29,7 @@ const difficultyDescription = {
 }
 
 export async function generateStaticParams() {
-  const categories = loadCategories()
+  const categories = await loadCategories()
   const params: { first: string; second: string; imageSlug: string }[] = []
 
   for (const cat of categories) {
@@ -51,7 +51,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { first, second, imageSlug } = await params
   const categorySlug = `${first}/${second}`
-  const categories = loadCategories()
+  const categories = await loadCategories()
   const category = categories.find((c: Category) => c.slug === categorySlug)
   const categoryName = category?.name || second.charAt(0).toUpperCase() + second.slice(1)
   const images = await loadImages(categorySlug)
@@ -61,8 +61,13 @@ export async function generateMetadata({
     return { title: 'Ausmalbild nicht gefunden' }
   }
 
+  const absolutize = (u: string) =>
+    u.startsWith('http://') || u.startsWith('https://')
+      ? u
+      : `https://ausmalbilder-gratis.com${u}`
+
   const pageUrl = `https://ausmalbilder-gratis.com/${image.category}/${image.slug}/`
-  const imageUrl = `https://ausmalbilder-gratis.com${image.thumbnailUrl}`
+  const imageUrl = absolutize(image.thumbnailUrl)
   const metaTitle = image.metaTitleDE || `${image.title} Ausmalbild kostenlos zum Ausdrucken & Ausmalen | Ausmalbilder Gratis`
   const metaDesc = image.metaDescDE || `${image.title} Ausmalbild kostenlos als PDF herunterladen oder direkt online ausmalen. Schwierigkeit: ${image.difficulty}. Für Kinder ab ${image.ageMin} Jahren — ohne Anmeldung, 100% gratis.`
 
@@ -138,7 +143,7 @@ export default async function DynamicImagePage({
 }) {
   const { first, second, imageSlug } = await params
   const categorySlug = `${first}/${second}`
-  const categories = loadCategories()
+  const categories = await loadCategories()
   const images = await loadImages(categorySlug)
   const image = images.find((img) => img.slug === imageSlug)
 
@@ -192,9 +197,14 @@ Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für da
     },
   ]
 
+  const absolutize = (u: string) =>
+    u.startsWith('http://') || u.startsWith('https://')
+      ? u
+      : `https://ausmalbilder-gratis.com${u}`
+
   const pageUrl = `https://ausmalbilder-gratis.com/${image.category}/${image.slug}/`
-  const fullImageUrl = `https://ausmalbilder-gratis.com${image.imageUrl}`
-  const fullThumbUrl = `https://ausmalbilder-gratis.com${image.thumbnailUrl}`
+  const fullImageUrl = absolutize(image.imageUrl)
+  const fullThumbUrl = absolutize(image.thumbnailUrl)
 
   // --- Schema: ImageObject (enhanced) ---
   const schemaImageObject = {
@@ -250,7 +260,7 @@ Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für da
     potentialAction: [
       {
         '@type': 'DownloadAction',
-        target: `https://ausmalbilder-gratis.com${image.pdfUrl}`,
+        target: absolutize(image.pdfUrl),
         name: 'PDF herunterladen',
       },
       {

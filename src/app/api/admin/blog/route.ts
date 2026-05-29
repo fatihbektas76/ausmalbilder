@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { revalidatePath } from "next/cache";
 import type { BlogArticle } from "@/data/types";
-
-const BLOG_DIR = path.join(process.cwd(), "src", "data", "blog");
-const ARTICLES_FILE = path.join(BLOG_DIR, "articles.json");
+import { getArticles, saveArticles } from "@/lib/data-store";
 
 function slugify(text: string): string {
   return text
@@ -17,32 +14,9 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function ensureDir() {
-  try {
-    await mkdir(BLOG_DIR, { recursive: true });
-  } catch {
-    // directory already exists
-  }
-}
-
-async function readArticles(): Promise<BlogArticle[]> {
-  await ensureDir();
-  try {
-    const content = await readFile(ARTICLES_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return [];
-  }
-}
-
-async function writeArticles(articles: BlogArticle[]): Promise<void> {
-  await ensureDir();
-  await writeFile(ARTICLES_FILE, JSON.stringify(articles, null, 2), "utf-8");
-}
-
 export async function GET() {
   try {
-    const articles = await readArticles();
+    const articles = await getArticles();
 
     // Sort by publishedAt desc (newest first), drafts on top
     articles.sort((a, b) => {
@@ -69,7 +43,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const articles = await readArticles();
+    const articles = await getArticles();
 
     // Validate required fields
     if (!body.title || !body.title.trim()) {
@@ -134,7 +108,10 @@ export async function POST(request: NextRequest) {
     };
 
     articles.push(newArticle);
-    await writeArticles(articles);
+    await saveArticles(articles);
+
+    revalidatePath("/blog");
+    if (isLive) revalidatePath(`/blog/${slug}`);
 
     return NextResponse.json({ success: true, article: newArticle }, { status: 201 });
   } catch (error) {

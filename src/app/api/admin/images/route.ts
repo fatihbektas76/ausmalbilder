@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readdir, readFile } from "fs/promises";
-import path from "path";
+import { getCategories, getImages } from "@/lib/data-store";
 import type { ColoringImage } from "@/data/types";
-
-const IMAGES_DIR = path.join(process.cwd(), "src", "data", "images");
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,26 +8,21 @@ export async function GET(request: NextRequest) {
     const categoryFilter = searchParams.get("category");
     const statusFilter = searchParams.get("status"); // "live" | "draft"
 
-    // Read all JSON files in the images directory
-    let files: string[];
-    try {
-      files = await readdir(IMAGES_DIR);
-    } catch {
-      files = [];
-    }
+    // Iterate categories and pull image lists in parallel
+    const cats = await getCategories();
+    const lists = await Promise.all(
+      cats.map(async (c) => ({
+        slug: c.slug,
+        images: await getImages(c.slug),
+      }))
+    );
 
-    const jsonFiles = files.filter((f) => f.endsWith(".json"));
     const allImages: (ColoringImage & { _jsonFile?: string })[] = [];
-
-    for (const file of jsonFiles) {
-      const content = await readFile(path.join(IMAGES_DIR, file), "utf-8");
-      const images: ColoringImage[] = JSON.parse(content);
-      images.forEach((img) => {
-        allImages.push({ ...img, _jsonFile: file });
-      });
+    for (const { slug, images } of lists) {
+      const jsonFile = `${slug.replace(/\//g, "-")}.json`;
+      images.forEach((img) => allImages.push({ ...img, _jsonFile: jsonFile }));
     }
 
-    // Filter
     let filtered = allImages;
     if (categoryFilter) {
       filtered = filtered.filter((img) => img.category === categoryFilter);
@@ -41,7 +33,6 @@ export async function GET(request: NextRequest) {
       filtered = filtered.filter((img) => img.publishedAt === "");
     }
 
-    // Sort by publishedAt desc (newest first), drafts on top
     filtered.sort((a, b) => {
       if (!a.publishedAt && b.publishedAt) return -1;
       if (a.publishedAt && !b.publishedAt) return 1;

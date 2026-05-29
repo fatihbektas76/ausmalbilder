@@ -4,17 +4,22 @@ import { loadAllImages, loadCategories } from '@/lib/load-data'
 const BASE_URL = 'https://ausmalbilder-gratis.com'
 
 export async function GET() {
-  const allImages = await loadAllImages()
-  const categories = loadCategories()
+  const [allImages, categories] = await Promise.all([
+    loadAllImages(),
+    loadCategories(),
+  ])
 
   const catMap = new Map(categories.map((c) => [c.slug, c.name]))
+
+  const absolutize = (u: string) =>
+    u.startsWith('http://') || u.startsWith('https://') ? u : `${BASE_URL}${u}`
 
   const urls = allImages
     .filter((img) => img.publishedAt)
     .map((img) => {
       const pageUrl = `${BASE_URL}/${img.category}/${img.slug}/`
-      const imageUrl = `${BASE_URL}${img.imageUrl}`
-      const thumbUrl = `${BASE_URL}${img.thumbnailUrl}`
+      const imageUrl = absolutize(img.imageUrl)
+      const thumbUrl = absolutize(img.thumbnailUrl)
       const catName = catMap.get(img.category) || img.category
       const caption = `${img.title} — kostenloses Ausmalbild zum Ausdrucken (${catName})`
       const geoLocation = 'Deutschland'

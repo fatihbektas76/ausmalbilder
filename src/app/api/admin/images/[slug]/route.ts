@@ -1,52 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readdir, readFile, writeFile, mkdir, rename } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
+import { revalidatePath } from "next/cache";
 import { deleteFromR2 } from "@/lib/r2-upload";
+import {
+  getCategories,
+  saveCategories,
+  getImages,
+  saveImages,
+  copyObject,
+  deleteObject,
+} from "@/lib/data-store";
 import type { ColoringImage } from "@/data/types";
-
-const IMAGES_DIR = path.join(process.cwd(), "src", "data", "images");
-const CATEGORIES_PATH = path.join(process.cwd(), "src", "data", "categories.json");
 
 async function syncImageCount(categorySlug: string, count: number) {
   try {
-    const raw = await readFile(CATEGORIES_PATH, "utf-8");
-    const cats = JSON.parse(raw);
-    const idx = cats.findIndex((c: any) => c.slug === categorySlug);
+    const cats = await getCategories();
+    const idx = cats.findIndex((c) => c.slug === categorySlug);
     if (idx !== -1) {
       cats[idx].imageCount = count;
-      await writeFile(CATEGORIES_PATH, JSON.stringify(cats, null, 2) + "\n", "utf-8");
+      await saveCategories(cats);
     }
   } catch {
     // Non-critical
   }
 }
 
-async function findImageInJsonFiles(
-  slug: string
-): Promise<{
+interface FoundImage {
   image: ColoringImage;
-  filePath: string;
+  categorySlug: string;
   images: ColoringImage[];
   index: number;
-} | null> {
-  let files: string[];
-  try {
-    files = await readdir(IMAGES_DIR);
-  } catch {
-    return null;
-  }
+}
 
-  for (const file of files.filter((f) => f.endsWith(".json"))) {
-    const filePath = path.join(IMAGES_DIR, file);
-    const content = await readFile(filePath, "utf-8");
-    const images: ColoringImage[] = JSON.parse(content);
+async function findImage(slug: string): Promise<FoundImage | null> {
+  const cats = await getCategories();
+  for (const cat of cats) {
+    const images = await getImages(cat.slug);
     const index = images.findIndex((img) => img.slug === slug);
     if (index !== -1) {
-      return { image: images[index], filePath, images, index };
+      return { image: images[index], categorySlug: cat.slug, images, index };
     }
   }
-
   return null;
 }
 
@@ -57,7 +50,7 @@ export async function PATCH(
   try {
     const { slug } = await params;
     const body = await request.json();
-    const found = await findImageInJsonFiles(slug);
+    const found = await findImage(slug);
 
     if (!found) {
       return NextResponse.json(
@@ -66,9 +59,8 @@ export async function PATCH(
       );
     }
 
-    const { images, filePath, index } = found;
+    const { images, categorySlug, index } = found;
 
-    // Update allowed fields (including bilingual fields)
     const updatable = [
       "title",
       "titleSeo",
@@ -82,7 +74,6 @@ export async function PATCH(
       "seoDescription",
       "seoTextShort",
       "seoTextLong",
-      // Bilingual fields
       "titleDE",
       "titleEN",
       "slugDE",
@@ -99,49 +90,31 @@ export async function PATCH(
 
     for (const key of updatable) {
       if (body[key] !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (images[index] as any)[key] = body[key];
       }
     }
 
-    // Keep title in sync with titleDE
     if (body.titleDE !== undefined) {
       images[index].title = body.titleDE;
     }
 
-    // Handle status toggle (publish / unpublish)
     if (body.status === "live" && !images[index].publishedAt) {
       images[index].publishedAt = new Date().toISOString();
     } else if (body.status === "draft") {
       images[index].publishedAt = "";
     }
 
-    // Handle category change — move image to new JSON file + move files
+    // Cross-category move
     if (body.category && body.category !== images[index].category) {
       const oldCategory = images[index].category;
       const newCategory = body.category;
-      const newJsonName = newCategory.replace(/\//g, "-") + ".json";
-      const newFilePath = path.join(IMAGES_DIR, newJsonName);
 
-      // Create JSON file for target category if it doesn't exist
-      if (!existsSync(newFilePath)) {
-        await writeFile(newFilePath, "[]", "utf-8");
-      }
-
-      // Move local files (public/uploads/) to new category paths
-      const uploadsDir = path.join(process.cwd(), "public", "uploads");
       const fileTypes = [
         { prefix: "images", ext: ".webp", urlField: "imageUrl" as const },
-        {
-          prefix: "thumbnails",
-          ext: "-thumb.webp",
-          urlField: "thumbnailUrl" as const,
-        },
+        { prefix: "thumbnails", ext: "-thumb.webp", urlField: "thumbnailUrl" as const },
         { prefix: "pdfs", ext: ".pdf", urlField: "pdfUrl" as const },
-        {
-          prefix: "pinterest",
-          ext: "-pinterest.jpg",
-          urlField: "pinterestUrl" as const,
-        },
+        { prefix: "pinterest", ext: "-pinterest.jpg", urlField: "pinterestUrl" as const },
       ];
 
       const movedImage: ColoringImage = {
@@ -149,59 +122,45 @@ export async function PATCH(
         category: newCategory,
       };
 
+      const ASSETS_URL = process.env.NEXT_PUBLIC_ASSETS_URL || "";
+
       for (const ft of fileTypes) {
-        const oldPath = path.join(
-          uploadsDir,
-          ft.prefix,
-          oldCategory,
-          `${slug}${ft.ext}`
-        );
-        const newDir = path.join(
-          uploadsDir,
-          ft.prefix,
-          ...newCategory.split("/")
-        );
-        const newPath = path.join(newDir, `${slug}${ft.ext}`);
-
-        if (existsSync(oldPath)) {
-          await mkdir(newDir, { recursive: true });
-          try {
-            await rename(oldPath, newPath);
-          } catch {
-            // Cross-device move — fallback: copy + delete
-            const { copyFile, unlink } = await import("fs/promises");
-            await copyFile(oldPath, newPath);
-            await unlink(oldPath);
-          }
+        const oldKey = `${ft.prefix}/${oldCategory}/${slug}${ft.ext}`;
+        const newKey = `${ft.prefix}/${newCategory}/${slug}${ft.ext}`;
+        // Copy + delete in S3
+        await copyObject(oldKey, newKey);
+        try {
+          await deleteObject(oldKey);
+        } catch {
+          // ignore — copy succeeded; orphan old key
         }
-
-        // Update URL fields
-        (movedImage as any)[ft.urlField] =
-          `/uploads/${ft.prefix}/${newCategory}/${slug}${ft.ext}`;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (movedImage as any)[ft.urlField] = `${ASSETS_URL}/${newKey}`;
       }
 
-      // Remove from old file
+      // Remove from old category and save
       images.splice(index, 1);
-      await writeFile(filePath, JSON.stringify(images, null, 2), "utf-8");
+      await saveImages(categorySlug, images);
 
-      // Add to new file
-      const newContent = await readFile(newFilePath, "utf-8");
-      const newImages: ColoringImage[] = JSON.parse(newContent);
-      newImages.push(movedImage);
-      await writeFile(
-        newFilePath,
-        JSON.stringify(newImages, null, 2),
-        "utf-8"
-      );
+      // Add to new category
+      const targetImages = await getImages(newCategory);
+      targetImages.push(movedImage);
+      await saveImages(newCategory, targetImages);
 
-      // Sync imageCount for both old and new categories
       await syncImageCount(oldCategory, images.length);
-      await syncImageCount(newCategory, newImages.length);
+      await syncImageCount(newCategory, targetImages.length);
+
+      revalidatePath(`/${oldCategory}`);
+      revalidatePath(`/${newCategory}`);
+      revalidatePath(`/${newCategory}/${slug}`);
 
       return NextResponse.json({ success: true, image: movedImage });
     }
 
-    await writeFile(filePath, JSON.stringify(images, null, 2), "utf-8");
+    await saveImages(categorySlug, images);
+
+    revalidatePath(`/${categorySlug}`);
+    revalidatePath(`/${categorySlug}/${slug}`);
 
     return NextResponse.json({ success: true, image: images[index] });
   } catch (error) {
@@ -214,12 +173,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { slug } = await params;
-    const found = await findImageInJsonFiles(slug);
+    const found = await findImage(slug);
 
     if (!found) {
       return NextResponse.json(
@@ -228,9 +187,9 @@ export async function DELETE(
       );
     }
 
-    const { image, images, filePath, index } = found;
+    const { image, images, categorySlug, index } = found;
 
-    // Delete files from R2 (including Pinterest)
+    // Delete the image binaries from object storage
     const categoryPath = image.category;
     const keys = [
       `images/${categoryPath}/${slug}.webp`,
@@ -241,12 +200,12 @@ export async function DELETE(
 
     await Promise.allSettled(keys.map((key) => deleteFromR2(key)));
 
-    // Remove from JSON
     images.splice(index, 1);
-    await writeFile(filePath, JSON.stringify(images, null, 2), "utf-8");
+    await saveImages(categorySlug, images);
 
-    // Sync imageCount after deletion
     await syncImageCount(image.category, images.length);
+
+    revalidatePath(`/${categorySlug}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

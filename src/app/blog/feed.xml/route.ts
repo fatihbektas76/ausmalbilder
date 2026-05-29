@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import articlesData from "@/data/blog/articles.json";
-import type { BlogArticle } from "@/data/types";
+import { getArticles } from "@/lib/data-store";
 
 export async function GET() {
-  const articles = (articlesData as BlogArticle[])
+  const all = await getArticles();
+  const articles = all
     .filter((a) => a.status !== "draft")
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 

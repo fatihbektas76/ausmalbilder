@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import BlogOverview from "./BlogOverview";
-import type { BlogArticle } from "@/data/types";
-import articlesData from "@/data/blog/articles.json";
+import { getArticles } from "@/lib/data-store";
 
 export const metadata: Metadata = {
   title: "Blog — Ausmalen, Kreativität & Stressabbau",
@@ -27,8 +26,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogPage() {
-  const articles = (articlesData as BlogArticle[])
+export default async function BlogPage() {
+  const all = await getArticles();
+  const articles = all
     .filter((a) => a.status !== "draft")
     .sort(
       (a, b) =>

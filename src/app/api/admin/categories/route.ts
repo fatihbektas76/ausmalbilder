@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile } from "fs/promises";
-import path from "path";
+import { revalidatePath } from "next/cache";
 import type { Category } from "@/data/types";
-
-const categoriesPath = path.join(process.cwd(), "src", "data", "categories.json");
-const imagesDir = path.join(process.cwd(), "src", "data", "images");
-
-async function readCategories(): Promise<Category[]> {
-  const raw = await readFile(categoriesPath, "utf-8");
-  return JSON.parse(raw) as Category[];
-}
-
-async function writeCategories(categories: Category[]): Promise<void> {
-  await writeFile(categoriesPath, JSON.stringify(categories, null, 2) + "\n", "utf-8");
-}
+import {
+  getCategories,
+  saveCategories,
+  saveImages,
+} from "@/lib/data-store";
 
 // GET /api/admin/categories — return all categories
 export async function GET() {
   try {
-    const categories = await readCategories();
+    const categories = await getCategories();
     return NextResponse.json({ categories });
   } catch (error) {
     console.error("Failed to read categories:", error);
@@ -34,7 +26,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate required fields
     if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
       return NextResponse.json(
         { error: "Feld 'name' ist erforderlich." },
@@ -51,10 +42,8 @@ export async function POST(request: NextRequest) {
     const name = body.name.trim();
     const slug = body.slug.trim();
 
-    // Read existing categories
-    const categories = await readCategories();
+    const categories = await getCategories();
 
-    // Check for duplicate slug
     if (categories.some((cat) => cat.slug === slug)) {
       return NextResponse.json(
         { error: `Kategorie mit Slug '${slug}' existiert bereits.` },
@@ -62,7 +51,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the new category with defaults
     const newCategory: Category = {
       slug,
       name,
@@ -81,20 +69,18 @@ export async function POST(request: NextRequest) {
       audience: body.audience || "alle",
     };
 
-    // Set optional parentSlug
     if (body.parentSlug && typeof body.parentSlug === "string" && body.parentSlug.trim()) {
       newCategory.parentSlug = body.parentSlug.trim();
     }
 
-    // Add to array and persist
     categories.push(newCategory);
-    await writeCategories(categories);
+    await saveCategories(categories);
 
-    // Create the corresponding empty images JSON file
-    // Slug like "tiere/pferd" becomes "tiere-pferd.json"
-    const imageFileName = slug.replace(/\//g, "-") + ".json";
-    const imageFilePath = path.join(imagesDir, imageFileName);
-    await writeFile(imageFilePath, "[]\n", "utf-8");
+    // Create an empty images list so the page resolves to []
+    await saveImages(slug, []);
+
+    revalidatePath("/", "layout");
+    revalidatePath(`/${slug}`);
 
     return NextResponse.json({ category: newCategory }, { status: 201 });
   } catch (error) {

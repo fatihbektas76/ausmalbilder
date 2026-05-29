@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile } from "fs/promises";
-import path from "path";
+import { revalidatePath } from "next/cache";
 import { processImage } from "@/lib/image-processor";
 import { generatePdf } from "@/lib/pdf-generator";
 import { uploadToR2 } from "@/lib/r2-upload";
 import {
+  getCategories,
+  saveCategories,
+  getImages,
+  saveImages,
+} from "@/lib/data-store";
+import {
   ensureUniqueSlug,
   generateSeoFields,
   generateBilingualMetadata,
-  categoryToJsonName,
 } from "@/lib/slug-generator";
 import slugify from "slugify";
 import type { ColoringImage } from "@/data/types";
@@ -45,12 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Read categories to validate
-    const catPath = path.join(process.cwd(), "src", "data", "categories.json");
-    const catRaw = await readFile(catPath, "utf-8");
-    const allCategories = JSON.parse(catRaw);
+    const allCategories = await getCategories();
     const categorySlug = categoryKey;
     const validCategory = allCategories.find(
-      (c: any) => c.slug === categorySlug
+      (c) => c.slug === categorySlug
     );
     if (!validCategory) {
       return NextResponse.json(
@@ -76,23 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Load existing images to check for slug duplicates
-    const jsonName = categoryToJsonName(categorySlug);
-    const jsonPath = path.join(
-      process.cwd(),
-      "src",
-      "data",
-      "images",
-      `${jsonName}.json`
-    );
-
-    let existingImages: ColoringImage[] = [];
-    try {
-      const raw = await readFile(jsonPath, "utf-8");
-      existingImages = JSON.parse(raw);
-    } catch {
-      // File doesn't exist yet — will create
-    }
-
+    const existingImages = await getImages(categorySlug);
     const existingSlugs = existingImages.map((img) => img.slug);
     const slug = ensureUniqueSlug(rawSlug, existingSlugs);
 
@@ -165,32 +151,20 @@ export async function POST(request: NextRequest) {
       altTextEN: bilingual?.altTextEN || undefined,
     };
 
-    // Save to JSON
+    // Save images JSON to Scaleway
     existingImages.push(entry);
-    await writeFile(
-      jsonPath,
-      JSON.stringify(existingImages, null, 2),
-      "utf-8"
-    );
+    await saveImages(categorySlug, existingImages);
 
-    // Update imageCount in categories.json
-    try {
-      const catRawUpdated = await readFile(catPath, "utf-8");
-      const catsUpdated = JSON.parse(catRawUpdated);
-      const catIndex = catsUpdated.findIndex(
-        (c: any) => c.slug === categorySlug
-      );
-      if (catIndex !== -1) {
-        catsUpdated[catIndex].imageCount = existingImages.length;
-        await writeFile(
-          catPath,
-          JSON.stringify(catsUpdated, null, 2) + "\n",
-          "utf-8"
-        );
-      }
-    } catch {
-      // Non-critical — imageCount sync failed silently
+    // Update imageCount in categories
+    const catIndex = allCategories.findIndex((c) => c.slug === categorySlug);
+    if (catIndex !== -1) {
+      allCategories[catIndex].imageCount = existingImages.length;
+      await saveCategories(allCategories);
     }
+
+    revalidatePath(`/${categorySlug}`);
+    revalidatePath(`/${categorySlug}/${slug}`);
+    revalidatePath("/", "layout");
 
     return NextResponse.json({ success: true, image: entry });
   } catch (error) {

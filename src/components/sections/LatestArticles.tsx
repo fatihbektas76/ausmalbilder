@@ -1,6 +1,5 @@
 import Link from "next/link";
-import articlesData from "@/data/blog/articles.json";
-import type { BlogArticle } from "@/data/types";
+import { getArticles } from "@/lib/data-store";
 
 const CATEGORY_LABELS: Record<string, { label: string; className: string }> = {
   stressabbau: { label: "Stressabbau", className: "bg-purple-100 text-purple-700" },
@@ -10,8 +9,9 @@ const CATEGORY_LABELS: Record<string, { label: string; className: string }> = {
   saisonal: { label: "Saisonal", className: "bg-green-100 text-green-700" },
 };
 
-export default function LatestArticles() {
-  const articles = (articlesData as BlogArticle[])
+export default async function LatestArticles() {
+  const all = await getArticles();
+  const articles = all
     .filter((a) => a.status !== "draft")
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     .slice(0, 3);

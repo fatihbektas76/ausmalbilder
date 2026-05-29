@@ -1,33 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { revalidatePath } from "next/cache";
 import type { BlogArticle } from "@/data/types";
-
-const BLOG_DIR = path.join(process.cwd(), "src", "data", "blog");
-const ARTICLES_FILE = path.join(BLOG_DIR, "articles.json");
-
-async function ensureDir() {
-  try {
-    await mkdir(BLOG_DIR, { recursive: true });
-  } catch {
-    // directory already exists
-  }
-}
-
-async function readArticles(): Promise<BlogArticle[]> {
-  await ensureDir();
-  try {
-    const content = await readFile(ARTICLES_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return [];
-  }
-}
-
-async function writeArticles(articles: BlogArticle[]): Promise<void> {
-  await ensureDir();
-  await writeFile(ARTICLES_FILE, JSON.stringify(articles, null, 2), "utf-8");
-}
+import { getArticles, saveArticles } from "@/lib/data-store";
 
 export async function GET(
   _request: NextRequest,
@@ -35,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-    const articles = await readArticles();
+    const articles = await getArticles();
     const article = articles.find((a) => a.slug === slug);
 
     if (!article) {
@@ -62,7 +36,7 @@ export async function PATCH(
   try {
     const { slug } = await params;
     const body = await request.json();
-    const articles = await readArticles();
+    const articles = await getArticles();
     const index = articles.findIndex((a) => a.slug === slug);
 
     if (index === -1) {
@@ -116,7 +90,10 @@ export async function PATCH(
     // Always update updatedAt
     articles[index].updatedAt = now;
 
-    await writeArticles(articles);
+    await saveArticles(articles);
+
+    revalidatePath("/blog");
+    revalidatePath(`/blog/${articles[index].slug}`);
 
     return NextResponse.json({ success: true, article: articles[index] });
   } catch (error) {
@@ -134,7 +111,7 @@ export async function DELETE(
 ) {
   try {
     const { slug } = await params;
-    const articles = await readArticles();
+    const articles = await getArticles();
     const index = articles.findIndex((a) => a.slug === slug);
 
     if (index === -1) {
@@ -145,7 +122,10 @@ export async function DELETE(
     }
 
     articles.splice(index, 1);
-    await writeArticles(articles);
+    await saveArticles(articles);
+
+    revalidatePath("/blog");
+    revalidatePath(`/blog/${slug}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

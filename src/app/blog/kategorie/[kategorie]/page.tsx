@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import articlesData from "@/data/blog/articles.json";
-import type { BlogArticle, BlogCategory } from "@/data/types";
+import { getArticles } from "@/lib/data-store";
+import type { BlogCategory } from "@/data/types";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import ArticleCard from "@/components/blog/ArticleCard";
 
@@ -62,8 +62,6 @@ const CATEGORY_META: Record<
   },
 };
 
-const articles = articlesData as BlogArticle[];
-
 /* ---------- static params ---------- */
 
 export function generateStaticParams(): { kategorie: string }[] {
@@ -120,7 +118,8 @@ export default async function BlogKategoriePage({
     notFound();
   }
 
-  const categoryArticles = articles
+  const allArticles = await getArticles();
+  const categoryArticles = allArticles
     .filter((a) => a.category === kategorie && a.status !== "draft")
     .sort(
       (a, b) =>

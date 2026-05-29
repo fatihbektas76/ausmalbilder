@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { readdir, readFile } from "fs/promises";
-import path from "path";
-import articlesData from "@/data/blog/articles.json";
-import type { BlogArticle, ColoringImage } from "@/data/types";
+import { getArticles, getAllImages } from "@/lib/data-store";
+import type { BlogArticle } from "@/data/types";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer";
 import TableOfContents from "@/components/blog/TableOfContents";
@@ -31,12 +29,11 @@ const CATEGORY_BADGE_CLASSES: Record<string, string> = {
   saisonal: "bg-green-100 text-green-700",
 };
 
-const articles = articlesData as BlogArticle[];
-
 /* ---------- helpers ---------- */
 
-function getArticle(slug: string): BlogArticle | undefined {
-  return articles.find((a) => a.slug === slug && a.status !== "draft");
+async function findArticle(slug: string): Promise<BlogArticle | undefined> {
+  const all = await getArticles();
+  return all.find((a) => a.slug === slug && a.status !== "draft");
 }
 
 function formatDate(dateString: string): string {
@@ -47,28 +44,11 @@ function formatDate(dateString: string): string {
   });
 }
 
-async function loadAllImages(): Promise<ColoringImage[]> {
-  try {
-    const dir = path.join(process.cwd(), "src", "data", "images");
-    const files = await readdir(dir);
-    const allImages: ColoringImage[] = [];
-
-    for (const file of files.filter((f) => f.endsWith(".json"))) {
-      const content = await readFile(path.join(dir, file), "utf-8");
-      const parsed = JSON.parse(content) as ColoringImage[];
-      allImages.push(...parsed);
-    }
-
-    return allImages;
-  } catch {
-    return [];
-  }
-}
-
 /* ---------- static params ---------- */
 
-export function generateStaticParams(): { slug: string }[] {
-  return articles
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  const all = await getArticles();
+  return all
     .filter((a) => a.status !== "draft")
     .map((a) => ({ slug: a.slug }));
 }
@@ -81,7 +61,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await findArticle(slug);
 
   if (!article) {
     return { title: "Artikel nicht gefunden" };
@@ -139,23 +119,26 @@ export default async function BlogArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await findArticle(slug);
 
   if (!article) {
     notFound();
   }
 
   /* Related coloring images */
-  const allImages = await loadAllImages();
+  const [allImages, allArticles] = await Promise.all([
+    getAllImages(),
+    getArticles(),
+  ]);
   const relatedColoringImages = article.relatedImages
     .map((imgSlug) => allImages.find((img) => img.slug === imgSlug))
-    .filter((img): img is ColoringImage => img !== undefined)
+    .filter((img): img is NonNullable<typeof img> => img !== undefined)
     .slice(0, 4);
 
   /* Related articles */
   const relatedArticleObjects = article.relatedArticles
     .map((aSlug) =>
-      articles.find((a) => a.slug === aSlug && a.status !== "draft"),
+      allArticles.find((a) => a.slug === aSlug && a.status !== "draft"),
     )
     .filter((a): a is BlogArticle => a !== undefined)
     .slice(0, 3);

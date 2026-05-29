@@ -11,8 +11,8 @@ function getRelatedCategories(categories: Category[], currentSlug: string): { na
     .map(c => ({ name: c.name, href: c.href || `/${c.slug}`, description: c.description }))
 }
 
-export function generateStaticParams() {
-  const categories = loadCategories()
+export async function generateStaticParams() {
+  const categories = await loadCategories()
   return categories
     .filter(c => !c.slug.includes('/'))
     .map(c => ({ first: c.slug }))
@@ -20,7 +20,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ first: string }> }): Promise<Metadata> {
   const { first } = await params
-  const categories = loadCategories()
+  const categories = await loadCategories()
   const cat = categories.find(c => c.slug === first)
   if (!cat) return { title: 'Nicht gefunden' }
 
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ first: st
 
 export default async function DynamicCategoryPage({ params }: { params: Promise<{ first: string }> }) {
   const { first } = await params
-  const categories = loadCategories()
+  const categories = await loadCategories()
   const category = categories.find(c => c.slug === first)
 
   if (!category) notFound()

@@ -4,8 +4,10 @@ import { loadCategories, loadAllImages } from '@/lib/load-data'
 const BASE_URL = 'https://ausmalbilder-gratis.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const categories = loadCategories()
-  const allImages = await loadAllImages()
+  const [categories, allImages] = await Promise.all([
+    loadCategories(),
+    loadAllImages(),
+  ])
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
