@@ -286,11 +286,12 @@ export default function ColoringTool({
   const fabricPointerEvents = toolGroup === "shapes" ? "auto" : "none";
 
   // Fabric v7: pointer-events must be set on the wrapper div, not the inner canvas
+  // Depend on fabric.ready so this runs AFTER initFabric populates wrapperRef
   useEffect(() => {
     if (fabric.wrapperRef.current) {
       fabric.wrapperRef.current.style.pointerEvents = fabricPointerEvents;
     }
-  }, [fabricPointerEvents, fabric.wrapperRef]);
+  }, [fabricPointerEvents, fabric.ready, fabric.wrapperRef]);
 
   // --- Cursor style per tool -----------------------------------------------
   const cursorStyle =
