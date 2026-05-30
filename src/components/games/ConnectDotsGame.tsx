@@ -130,11 +130,11 @@ export default function ConnectDotsGame() {
     }
   };
 
-  // Win detection
+  // Win detection — set immediately so the inline celebration appears
+  // alongside the closed silhouette. No modal blocks the picture.
   useEffect(() => {
     if (next > totalDots) {
-      const t = setTimeout(() => setWon(true), 600);
-      return () => clearTimeout(t);
+      setWon(true);
     }
   }, [next, totalDots]);
 
@@ -308,63 +308,64 @@ export default function ConnectDotsGame() {
         </svg>
       </div>
 
-      {/* Restart bar */}
-      <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={() => reset(difficulty)}
-          className="rounded-full border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-brand-indigo transition-colors hover:bg-brand-cream"
-        >
-          Von vorn beginnen
-        </button>
-      </div>
-
-      {/* Win overlay */}
-      {won && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => reset(difficulty)}
-        >
-          <div
-            className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-6xl">{pattern.emoji}</div>
-            <h2 className="mt-4 text-3xl font-bold text-brand-indigo">
-              Geschafft!
-            </h2>
-            <p className="mt-2 text-gray-600">{pattern.reveal}</p>
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => reset(difficulty)}
-                className="flex-1 rounded-full bg-brand-coral px-5 py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
-              >
-                Nochmal
-              </button>
-              {difficulty !== "schwer" && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    reset(difficulty === "leicht" ? "mittel" : "schwer")
-                  }
-                  className="flex-1 rounded-full border-2 border-brand-indigo px-5 py-3 text-base font-semibold text-brand-indigo transition-colors hover:bg-brand-indigo hover:text-white"
-                >
-                  Mehr Punkte
-                </button>
-              )}
+      {/* Inline celebration — appears below the board, motiv bleibt sichtbar */}
+      {won ? (
+        <div className="mx-auto max-w-xl space-y-4">
+          <div className="flex animate-celebrate items-center justify-center gap-3 rounded-2xl bg-gradient-to-br from-brand-coral to-orange-400 p-5 text-center text-white shadow-md">
+            <span className="text-4xl" aria-hidden>
+              {pattern.emoji}
+            </span>
+            <div>
+              <p className="text-xl font-bold leading-tight">Geschafft!</p>
+              <p className="text-sm text-white/90">{pattern.reveal}</p>
             </div>
           </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => reset(difficulty)}
+              className="flex-1 rounded-full bg-brand-indigo px-5 py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Nochmal
+            </button>
+            {difficulty !== "schwer" && (
+              <button
+                type="button"
+                onClick={() =>
+                  reset(difficulty === "leicht" ? "mittel" : "schwer")
+                }
+                className="flex-1 rounded-full border-2 border-brand-indigo px-5 py-3 text-base font-semibold text-brand-indigo transition-colors hover:bg-brand-indigo hover:text-white"
+              >
+                Mehr Punkte
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => reset(difficulty)}
+            className="rounded-full border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-brand-indigo transition-colors hover:bg-brand-cream"
+          >
+            Von vorn beginnen
+          </button>
         </div>
       )}
 
-      {/* Local shake animation */}
+      {/* Local animations */}
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-6px); }
           75% { transform: translateX(6px); }
         }
+        @keyframes celebrate {
+          0%   { transform: scale(0.92); opacity: 0; }
+          60%  { transform: scale(1.04); opacity: 1; }
+          100% { transform: scale(1);    opacity: 1; }
+        }
+        .animate-celebrate { animation: celebrate 0.45s ease-out both; }
       `}</style>
     </div>
   );
