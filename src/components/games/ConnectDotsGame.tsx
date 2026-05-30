@@ -255,8 +255,11 @@ export default function ConnectDotsGame() {
             return (
               <g
                 key={num}
-                onClick={() => onDotTap(num)}
-                onPointerDown={() => onDotTap(num)}
+                data-dot={num}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  onDotTap(num);
+                }}
                 style={{
                   cursor: "pointer",
                   transformOrigin: `${d.x}px ${d.y}px`,
