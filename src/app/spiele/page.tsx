@@ -34,16 +34,16 @@ const GAMES: Game[] = [
     description:
       "Setze ein Ausmalbild aus großen Puzzle-Teilen zusammen. Snap-to-Place, frustfrei.",
     ageHint: "ab 4 Jahren",
-    status: "soon",
+    status: "live",
     emoji: "🧩",
   },
   {
-    slug: "verbinde-die-punkte",
+    slug: "punkte",
     title: "Verbinde die Punkte",
     description:
-      "Ziehe eine Linie von Zahl zu Zahl und ein verstecktes Bild taucht auf.",
+      "Tippe die Zahlen der Reihe nach an und entdecke ein verstecktes Tier-Motiv.",
     ageHint: "ab 5 Jahren",
-    status: "soon",
+    status: "live",
     emoji: "✏️",
   },
 ];
