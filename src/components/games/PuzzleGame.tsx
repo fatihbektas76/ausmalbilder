@@ -7,11 +7,11 @@ type Difficulty = "leicht" | "mittel" | "schwer";
 
 const DIFFICULTY: Record<
   Difficulty,
-  { grid: number; label: string }
+  { grid: number; trayCols: number; label: string }
 > = {
-  leicht: { grid: 2, label: "Leicht (4 Teile)" },   // 2×2
-  mittel: { grid: 3, label: "Mittel (9 Teile)" },   // 3×3
-  schwer: { grid: 4, label: "Schwer (16 Teile)" },  // 4×4
+  leicht: { grid: 2, trayCols: 4, label: "Leicht (4 Teile)" },   // 2×2 board, 1 row tray
+  mittel: { grid: 3, trayCols: 5, label: "Mittel (9 Teile)" },   // 3×3 board, 2 rows
+  schwer: { grid: 4, trayCols: 8, label: "Schwer (16 Teile)" },  // 4×4 board, 2 rows
 };
 
 // Generous snap distance — small fingers, kids 3-6
@@ -24,6 +24,9 @@ interface Piece {
   // Current position (during drag / tray)
   x: number;
   y: number;
+  // Tray home position — piece returns here on missed drop
+  homeX: number;
+  homeY: number;
   isPlaced: boolean;
   isDragging: boolean;
 }
@@ -71,6 +74,7 @@ export default function PuzzleGame() {
 
   const config = DIFFICULTY[difficulty];
   const pieceSize = boardSize / config.grid;
+  const trayPieceSize = boardSize / config.trayCols;
 
   const startNew = useCallback(
     (d: Difficulty = difficulty, img: SearchRecord | null = image) => {
@@ -93,13 +97,14 @@ export default function PuzzleGame() {
           });
         }
       }
-      // Shuffle order — assign random tray slots
-      const shuffled = shuffle(initial).map((p, i) => ({
-        ...p,
-        // Initial position: below the board, in two rows of cols
-        x: (i % grid) * (boardSize / grid) + 4,
-        y: boardSize + 20 + Math.floor(i / grid) * (boardSize / grid + 8),
-      }));
+      // Shuffle order — pack into a compact tray below the board
+      const trayCols = cfg.trayCols;
+      const trayPieceSize = boardSize / trayCols;
+      const shuffled = shuffle(initial).map((p, i) => {
+        const hx = (i % trayCols) * trayPieceSize;
+        const hy = boardSize + 20 + Math.floor(i / trayCols) * (trayPieceSize + 4);
+        return { ...p, x: hx, y: hy, homeX: hx, homeY: hy };
+      });
 
       setDifficulty(d);
       setImage(newImg);
@@ -125,15 +130,26 @@ export default function PuzzleGame() {
     const pointerX = e.clientX - rect.left;
     const pointerY = e.clientY - rect.top;
 
+    // When grabbed from tray, piece grows to full size centered on the finger
+    // so the user can immediately see the whole piece they're holding.
     dragOffset.current = {
-      x: pointerX - piece.x,
-      y: pointerY - piece.y,
+      x: pieceSize / 2,
+      y: pieceSize / 2,
     };
 
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
     setPieces((ps) =>
-      ps.map((p) => (p.id === id ? { ...p, isDragging: true } : p))
+      ps.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              isDragging: true,
+              x: pointerX - pieceSize / 2,
+              y: pointerY - pieceSize / 2,
+            }
+          : p
+      )
     );
   };
 
@@ -177,7 +193,7 @@ export default function PuzzleGame() {
         p.id === id
           ? dist <= SNAP_DISTANCE
             ? { ...p, x: targetX, y: targetY, isPlaced: true, isDragging: false }
-            : { ...p, isDragging: false }
+            : { ...p, x: p.homeX, y: p.homeY, isDragging: false }
           : p
       )
     );
@@ -193,9 +209,9 @@ export default function PuzzleGame() {
 
   // Layout helpers
   const trayHeight = useMemo(() => {
-    const rows = Math.ceil(pieces.length / config.grid);
-    return rows * (pieceSize + 8);
-  }, [pieces.length, pieceSize, config.grid]);
+    const rows = Math.ceil(pieces.length / config.trayCols);
+    return rows * (trayPieceSize + 4);
+  }, [pieces.length, trayPieceSize, config.trayCols]);
 
   if (loadError) {
     return (
@@ -287,34 +303,41 @@ export default function PuzzleGame() {
           </div>
 
           {/* Pieces */}
-          {pieces.map((p) => (
-            <div
-              key={p.id}
-              onPointerDown={(e) => onPointerDown(e, p.id)}
-              onPointerMove={(e) => onPointerMove(e, p.id)}
-              onPointerUp={(e) => onPointerUp(e, p.id)}
-              onPointerCancel={(e) => onPointerUp(e, p.id)}
-              className={`absolute touch-none select-none rounded-md ${
-                p.isDragging
-                  ? "z-30 scale-105 shadow-2xl ring-2 ring-brand-coral"
-                  : p.isPlaced
-                  ? "z-10 shadow-sm"
-                  : "z-20 cursor-grab shadow-md active:cursor-grabbing"
-              }`}
-              style={{
-                left: p.x,
-                top: p.y,
-                width: pieceSize,
-                height: pieceSize,
-                backgroundImage: `url(${image.thumbnailUrl})`,
-                backgroundSize: `${boardSize}px ${boardSize}px`,
-                backgroundPosition: `-${p.col * pieceSize}px -${p.row * pieceSize}px`,
-                backgroundRepeat: "no-repeat",
-                backgroundColor: "white",
-                transition: p.isDragging ? "none" : "transform 0.15s ease",
-              }}
-            />
-          ))}
+          {pieces.map((p) => {
+            // In tray: small. Dragging / placed: full size.
+            const inTray = !p.isPlaced && !p.isDragging;
+            const size = inTray ? trayPieceSize : pieceSize;
+            const bgSize = inTray ? boardSize * (trayPieceSize / pieceSize) : boardSize;
+            const bgScale = inTray ? trayPieceSize / pieceSize : 1;
+            return (
+              <div
+                key={p.id}
+                onPointerDown={(e) => onPointerDown(e, p.id)}
+                onPointerMove={(e) => onPointerMove(e, p.id)}
+                onPointerUp={(e) => onPointerUp(e, p.id)}
+                onPointerCancel={(e) => onPointerUp(e, p.id)}
+                className={`absolute touch-none select-none rounded-md ${
+                  p.isDragging
+                    ? "z-30 shadow-2xl ring-2 ring-brand-coral"
+                    : p.isPlaced
+                    ? "z-10 shadow-sm"
+                    : "z-20 cursor-grab shadow-md active:cursor-grabbing"
+                }`}
+                style={{
+                  left: p.x,
+                  top: p.y,
+                  width: size,
+                  height: size,
+                  backgroundImage: `url(${image.thumbnailUrl})`,
+                  backgroundSize: `${bgSize}px ${bgSize}px`,
+                  backgroundPosition: `-${p.col * pieceSize * bgScale}px -${p.row * pieceSize * bgScale}px`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundColor: "white",
+                  transition: p.isDragging ? "none" : "width 0.15s ease, height 0.15s ease",
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
