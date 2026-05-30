@@ -189,14 +189,29 @@ export async function DELETE(
 
     const { image, images, categorySlug, index } = found;
 
-    // Delete the image binaries from object storage
-    const categoryPath = image.category;
-    const keys = [
-      `images/${categoryPath}/${slug}.webp`,
-      `thumbnails/${categoryPath}/${slug}-thumb.webp`,
-      `pdfs/${categoryPath}/${slug}.pdf`,
-      `pinterest/${categoryPath}/${slug}-pinterest.jpg`,
+    // Build delete keys from the actual URLs stored on the entry (handles
+    // mixed seed data: SVG, PDF, WebP — without assuming extensions).
+    const ASSETS_URL = process.env.NEXT_PUBLIC_ASSETS_URL || "";
+    const urlToKey = (u?: string): string | null => {
+      if (!u) return null;
+      if (ASSETS_URL && u.startsWith(`${ASSETS_URL}/`)) {
+        return u.slice(ASSETS_URL.length + 1);
+      }
+      if (u.startsWith("/uploads/")) return u.slice("/uploads/".length);
+      if (u.startsWith("/")) return u.slice(1);
+      return null;
+    };
+
+    const candidateUrls = [
+      image.imageUrl,
+      image.thumbnailUrl,
+      image.pdfUrl,
+      image.pinterestUrl,
+      image.svgUrl,
     ];
+    const keys = Array.from(
+      new Set(candidateUrls.map(urlToKey).filter((k): k is string => Boolean(k)))
+    );
 
     await Promise.allSettled(keys.map((key) => deleteFromR2(key)));
 
