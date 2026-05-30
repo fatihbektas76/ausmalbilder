@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Tiere", href: "/tiere" },
   { label: "Mandala", href: "/mandala" },
   { label: "Saisonal", href: "/saisonal/weihnachten" },
-  { label: "Erwachsene", href: "/erwachsene" },
+  { label: "Spiele", href: "/spiele" },
   { label: "Online", href: "/online-ausmalen" },
   { label: "Blog", href: "/blog" },
 ];

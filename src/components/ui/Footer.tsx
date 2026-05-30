@@ -16,8 +16,8 @@ const rechtlichesLinks = [
 const featuresLinks = [
   { label: "Online Ausmalen", href: "/online-ausmalen" },
   { label: "PDF Download", href: "/ausmalbilder" },
+  { label: "Spiele", href: "/spiele" },
   { label: "Blog", href: "/blog" },
-  { label: "Community (coming soon)", href: "#" },
 ];
 
 export default function Footer() {
