@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import MemoryCard, { type MemoryCardState } from "./MemoryCard";
+import PaerchenCard, { type PaerchenCardState } from "./PaerchenCard";
 import type { SearchRecord } from "@/app/api/search-data/route";
 
 type Difficulty = "leicht" | "mittel" | "schwer";
@@ -35,7 +35,7 @@ interface CardInstance {
   recordId: string;    // SearchRecord.id  (used to detect matches)
   imageUrl: string;
   alt: string;
-  state: MemoryCardState;
+  state: PaerchenCardState;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -69,7 +69,7 @@ function buildDeck(pool: SearchRecord[], pairs: number): CardInstance[] {
   return shuffle(doubled);
 }
 
-export default function MemoryGame() {
+export default function PaerchenGame() {
   const [pool, setPool] = useState<SearchRecord[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>("leicht");
@@ -241,7 +241,7 @@ export default function MemoryGame() {
         aria-live="polite"
       >
         {deck.map((card) => (
-          <MemoryCard
+          <PaerchenCard
             key={card.id}
             state={card.state}
             imageUrl={card.imageUrl}

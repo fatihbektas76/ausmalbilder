@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 
-export type MemoryCardState = "back" | "revealed" | "matched";
+export type PaerchenCardState = "back" | "revealed" | "matched";
 
 interface Props {
-  state: MemoryCardState;
+  state: PaerchenCardState;
   imageUrl: string;
   alt: string;
   onFlip: () => void;
@@ -23,7 +23,7 @@ const SIZE_CLASSES: Record<Props["size"], string> = {
  * white front with the image. Uses CSS 3D transform for the flip so the
  * GPU handles it smoothly on touchscreens.
  */
-export default function MemoryCard({
+export default function PaerchenCard({
   state,
   imageUrl,
   alt,

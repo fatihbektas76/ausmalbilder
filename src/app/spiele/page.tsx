@@ -5,7 +5,7 @@ import Breadcrumb from "@/components/ui/Breadcrumb";
 export const metadata: Metadata = {
   title: "Spiele für Kinder — kostenlos im Browser",
   description:
-    "Kostenlose Online-Spiele für Kinder — touch-optimiert für Tablet und Smartphone. Memory mit Tier-Pärchen und weitere Spiele rund um Ausmalbilder.",
+    "Kostenlose Online-Spiele für Kinder — touch-optimiert für Tablet und Smartphone. Pärchen-Spiel mit Tier-Motiven und weitere Spiele rund um Ausmalbilder.",
   alternates: { canonical: "https://ausmalbilder-gratis.com/spiele/" },
 };
 
@@ -20,10 +20,10 @@ interface Game {
 
 const GAMES: Game[] = [
   {
-    slug: "memory",
-    title: "Memory",
+    slug: "paare",
+    title: "Pärchen-Spiel",
     description:
-      "Finde die Tier-Pärchen. Mit drei Schwierigkeitsstufen für Kleinkinder bis Vorschüler.",
+      "Finde die Tier-Paare. Mit drei Schwierigkeitsstufen für Kleinkinder bis Vorschüler.",
     ageHint: "ab 3 Jahren",
     status: "live",
     emoji: "🧠",
