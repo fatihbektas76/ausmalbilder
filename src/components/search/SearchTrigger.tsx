@@ -59,7 +59,7 @@ export default function SearchTrigger({ variant = "input" }: Props) {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Suche öffnen"
-          className="group inline-flex w-64 items-center gap-2.5 rounded-full border border-gray-200 bg-white/60 px-4 py-2 text-sm text-gray-500 transition-colors hover:border-brand-coral/40 hover:bg-white"
+          className="group inline-flex w-44 items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-3 py-2 text-sm text-gray-500 transition-colors hover:border-brand-coral/40 hover:bg-white xl:w-64 xl:gap-2.5 xl:px-4"
         >
           <svg
             aria-hidden
@@ -74,7 +74,10 @@ export default function SearchTrigger({ variant = "input" }: Props) {
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
           </svg>
-          <span className="flex-1 text-left">Ausmalbilder suchen…</span>
+          <span className="flex-1 truncate text-left">
+            <span className="xl:hidden">Suchen…</span>
+            <span className="hidden xl:inline">Ausmalbilder suchen…</span>
+          </span>
           <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
             {shortcut}
           </kbd>
