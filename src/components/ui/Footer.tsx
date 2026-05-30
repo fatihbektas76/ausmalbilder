@@ -31,8 +31,8 @@ export default function Footer() {
               Ausmalbilder Gratis
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-white/70">
-              Deutschlands modernste Plattform für kostenlose Ausmalbilder
-              — zum Ausdrucken und Online-Ausmalen.
+              Kostenlose Ausmalbilder zum Ausdrucken und Online-Ausmalen —
+              für Kinder und Erwachsene.
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="mt-12 border-t border-white/10 pt-8">
           <p className="text-center text-sm text-white/50">
-            &copy; 2025 ausmalbilder-gratis.com — Alle Rechte vorbehalten.
+            &copy; 2026 ausmalbilder-gratis.com — Alle Rechte vorbehalten.
           </p>
         </div>
       </div>

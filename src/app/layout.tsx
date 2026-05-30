@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | Ausmalbilder Gratis',
   },
   description:
-    'Entdecke tausende kostenlose Ausmalbilder zum Ausdrucken und Online-Ausmalen. Für Kinder und Erwachsene — Tiere, Mandalas, saisonale Motive und mehr.',
+    'Entdecke kostenlose Ausmalbilder zum Ausdrucken und Online-Ausmalen. Für Kinder und Erwachsene — Tiere, Mandalas, saisonale Motive und mehr.',
   metadataBase: new URL('https://ausmalbilder-gratis.com'),
   alternates: {
     canonical: 'https://ausmalbilder-gratis.com',

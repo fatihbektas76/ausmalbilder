@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const stats = [
-  { label: "500+ Ausmalbilder" },
   { label: "100% Kostenlos" },
   { label: "Ohne Anmeldung" },
+  { label: "PDF & Online" },
 ];
 
 export default function Hero() {
@@ -15,9 +15,9 @@ export default function Hero() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-200">
-          Entdecke tausende kostenlose Ausmalbilder f&uuml;r Kinder und
-          Erwachsene. Lade PDFs herunter oder male direkt online im Browser
-          &mdash; ohne Anmeldung.
+          Entdecke kostenlose Ausmalbilder f&uuml;r Kinder und Erwachsene.
+          Lade PDFs herunter oder male direkt online im Browser &mdash; ohne
+          Anmeldung.
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">

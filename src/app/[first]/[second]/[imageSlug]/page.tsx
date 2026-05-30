@@ -309,7 +309,7 @@ Tipp zum Ausdrucken: Wähle in den Druckereinstellungen "Seite anpassen" für da
         '@type': 'HowToStep',
         position: 3,
         name: 'Ausmalen und genießen',
-        text: 'Male das Bild mit Buntstiften aus oder nutze das Online-Tool mit über 30 Farben, verschiedenen Pinseln und dem Füllen-Werkzeug.',
+        text: 'Male das Bild mit Buntstiften aus oder nutze das Online-Tool mit einer großen Farbauswahl, verschiedenen Pinseln und dem Füllen-Werkzeug.',
       },
       {
         '@type': 'HowToStep',

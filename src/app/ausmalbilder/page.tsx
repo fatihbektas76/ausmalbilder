@@ -6,19 +6,19 @@ import SeoText from '@/components/ui/SeoText'
 export const metadata: Metadata = {
   title: 'Ausmalbilder zum Ausdrucken — kostenlos',
   description:
-    'Entdecke tausende kostenlose Ausmalbilder zum Ausdrucken. Tiere, Mandalas, saisonale Motive und mehr — für Kinder und Erwachsene. Jetzt herunterladen!',
+    'Entdecke kostenlose Ausmalbilder zum Ausdrucken. Tiere, Mandalas, saisonale Motive und mehr — für Kinder und Erwachsene. Jetzt herunterladen.',
   alternates: { canonical: 'https://ausmalbilder-gratis.com/ausmalbilder/' },
 }
 
 const categories = [
-  { name: 'Tiere', href: '/tiere', count: '200+', emoji: '🦁' },
-  { name: 'Mandala', href: '/mandala', count: '30+', emoji: '🔮' },
-  { name: 'Weihnachten', href: '/saisonal/weihnachten', count: '40+', emoji: '🎄' },
-  { name: 'Halloween', href: '/saisonal/halloween', count: '35+', emoji: '🎃' },
-  { name: 'Ostern', href: '/saisonal/ostern', count: '25+', emoji: '🐣' },
-  { name: 'Herbst', href: '/saisonal/herbst', count: '20+', emoji: '🍂' },
-  { name: 'Frühling', href: '/saisonal/fruehling', count: '30+', emoji: '🌸' },
-  { name: 'Erwachsene', href: '/erwachsene', count: '15+', emoji: '🧘' },
+  { name: 'Tiere', href: '/tiere', emoji: '🦁' },
+  { name: 'Mandala', href: '/mandala', emoji: '🔮' },
+  { name: 'Weihnachten', href: '/saisonal/weihnachten', emoji: '🎄' },
+  { name: 'Halloween', href: '/saisonal/halloween', emoji: '🎃' },
+  { name: 'Ostern', href: '/saisonal/ostern', emoji: '🐣' },
+  { name: 'Herbst', href: '/saisonal/herbst', emoji: '🍂' },
+  { name: 'Frühling', href: '/saisonal/fruehling', emoji: '🌸' },
+  { name: 'Erwachsene', href: '/erwachsene', emoji: '🧘' },
 ]
 
 export default function AusmalbilderHubPage() {
@@ -37,9 +37,9 @@ export default function AusmalbilderHubPage() {
         </h1>
 
         <p className="text-gray-600 mb-8 max-w-3xl text-lg leading-relaxed">
-          Willkommen bei Ausmalbilder Gratis! Hier findest du hunderte kostenlose
+          Willkommen bei Ausmalbilder Gratis! Hier findest du kostenlose
           Ausmalbilder zum Ausdrucken und Online-Ausmalen. Wähle eine Kategorie und
-          entdecke wunderschöne Motive für Kinder und Erwachsene.
+          entdecke Motive für Kinder und Erwachsene.
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -53,7 +53,7 @@ export default function AusmalbilderHubPage() {
               <h2 className="text-lg font-semibold text-brand-indigo group-hover:text-brand-coral transition-colors">
                 {cat.name}
               </h2>
-              <span className="text-sm text-gray-500">{cat.count} Ausmalbilder</span>
+              <span className="text-sm text-gray-500">Kostenlos zum Ausdrucken</span>
             </Link>
           ))}
         </div>
