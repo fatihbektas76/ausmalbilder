@@ -13,12 +13,11 @@ const SECTIONS: { id: string; n: number; title: string }[] = [
   { id: 'angaben', n: 1, title: 'Angaben gemäß § 5 TMG' },
   { id: 'kontakt', n: 2, title: 'Kontakt' },
   { id: 'verantwortlich-inhalt', n: 3, title: 'Verantwortlich für Inhalt' },
-  { id: 'eu-streitschlichtung', n: 4, title: 'EU-Streitschlichtung' },
-  { id: 'verbraucherstreit', n: 5, title: 'Verbraucherstreitbeilegung' },
-  { id: 'haftung-inhalte', n: 6, title: 'Haftung für Inhalte' },
-  { id: 'haftung-links', n: 7, title: 'Haftung für Links' },
-  { id: 'urheberrecht', n: 8, title: 'Urheberrecht' },
-  { id: 'lizenz', n: 9, title: 'Lizenz der Ausmalbilder' },
+  { id: 'verbraucherstreit', n: 4, title: 'Verbraucherstreitbeilegung' },
+  { id: 'haftung-inhalte', n: 5, title: 'Haftung für Inhalte' },
+  { id: 'haftung-links', n: 6, title: 'Haftung für Links' },
+  { id: 'urheberrecht', n: 7, title: 'Urheberrecht' },
+  { id: 'lizenz', n: 8, title: 'Lizenz der Ausmalbilder' },
 ]
 
 /* --- helpers (mirrors Datenschutz page) --- */
@@ -200,28 +199,9 @@ export default function ImpressumPage() {
               </div>
             </Card>
 
-            {/* 4. EU-Streitschlichtung */}
+            {/* 4. Verbraucherstreitbeilegung */}
             <Card>
-              <SectionHeading n={4} id="eu-streitschlichtung">
-                EU-Streitschlichtung
-              </SectionHeading>
-              <p>
-                Die Europäische Kommission stellt eine Plattform zur
-                Online-Streitbeilegung (OS) bereit:
-              </p>
-              <p className="mt-3">
-                <ExtLink href="https://ec.europa.eu/consumers/odr/">
-                  ec.europa.eu/consumers/odr/
-                </ExtLink>
-              </p>
-              <p className="mt-3 text-sm text-gray-600">
-                Unsere E-Mail-Adresse finden Sie oben im Abschnitt „Kontakt".
-              </p>
-            </Card>
-
-            {/* 5. Verbraucherstreitbeilegung */}
-            <Card>
-              <SectionHeading n={5} id="verbraucherstreit">
+              <SectionHeading n={4} id="verbraucherstreit">
                 Verbraucherstreitbeilegung / Universalschlichtungsstelle
               </SectionHeading>
               <div className="flex gap-3 rounded-lg border-l-4 border-brand-coral bg-brand-cream/60 px-4 py-3">
@@ -247,9 +227,9 @@ export default function ImpressumPage() {
               </div>
             </Card>
 
-            {/* 6. Haftung Inhalte */}
+            {/* 5. Haftung Inhalte */}
             <Card>
-              <SectionHeading n={6} id="haftung-inhalte">
+              <SectionHeading n={5} id="haftung-inhalte">
                 Haftung für Inhalte
               </SectionHeading>
               <p>
@@ -272,9 +252,9 @@ export default function ImpressumPage() {
               </p>
             </Card>
 
-            {/* 7. Haftung Links */}
+            {/* 6. Haftung Links */}
             <Card>
-              <SectionHeading n={7} id="haftung-links">
+              <SectionHeading n={6} id="haftung-links">
                 Haftung für Links
               </SectionHeading>
               <p>
@@ -295,9 +275,9 @@ export default function ImpressumPage() {
               </p>
             </Card>
 
-            {/* 8. Urheberrecht */}
+            {/* 7. Urheberrecht */}
             <Card>
-              <SectionHeading n={8} id="urheberrecht">
+              <SectionHeading n={7} id="urheberrecht">
                 Urheberrecht
               </SectionHeading>
               <p>
@@ -321,9 +301,9 @@ export default function ImpressumPage() {
               </p>
             </Card>
 
-            {/* 9. Lizenz */}
+            {/* 8. Lizenz */}
             <Card>
-              <SectionHeading n={9} id="lizenz">
+              <SectionHeading n={8} id="lizenz">
                 Lizenz der Ausmalbilder
               </SectionHeading>
               <p>

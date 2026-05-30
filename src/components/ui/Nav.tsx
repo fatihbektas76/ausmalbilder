@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import SearchTrigger from "@/components/search/SearchTrigger";
 
 const navLinks = [
   { label: "Ausmalbilder", href: "/ausmalbilder" },
@@ -42,8 +43,9 @@ export default function Nav() {
             ))}
           </div>
 
-          {/* Desktop CTA button */}
-          <div className="hidden lg:block">
+          {/* Desktop search + CTA */}
+          <div className="hidden items-center gap-3 lg:flex">
+            <SearchTrigger variant="input" />
             <Link
               href="/ausmalbilder"
               className="inline-flex items-center rounded-full bg-brand-coral px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -52,11 +54,15 @@ export default function Nav() {
             </Link>
           </div>
 
+          {/* Mobile: search icon + hamburger */}
+          <div className="flex items-center gap-1 lg:hidden">
+            <SearchTrigger variant="icon" />
+
           {/* Mobile hamburger button */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-md p-2 transition-colors lg:hidden"
+            className="inline-flex items-center justify-center rounded-md p-2 transition-colors"
             style={{ color: '#555' }}
             aria-expanded={mobileMenuOpen}
             aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"}
@@ -93,6 +99,7 @@ export default function Nav() {
               </svg>
             )}
           </button>
+          </div>
         </div>
       </div>
 
