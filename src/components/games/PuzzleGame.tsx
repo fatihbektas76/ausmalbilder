@@ -92,6 +92,8 @@ export default function PuzzleGame() {
             col,
             x: 0,
             y: 0,
+            homeX: 0,
+            homeY: 0,
             isPlaced: false,
             isDragging: false,
           });
