@@ -209,7 +209,64 @@ export default function DatenschutzPage() {
             verbleibt das fertige Bild auf Ihrem Endgerät.
           </p>
 
-          <h2>10. Kinder-Datenschutz</h2>
+          <h2>10. Soziale Netzwerke (Pinterest, WhatsApp)</h2>
+          <p>
+            Im Online-Ausmaltool stehen Schaltflächen zum Teilen über Pinterest
+            und WhatsApp zur Verfügung. Diese Schaltflächen sind keine
+            eingebetteten Widgets der Anbieter, sondern einfache Verlinkungen
+            auf die jeweiligen Plattformen. Solange Sie keine dieser
+            Schaltflächen aktiv anklicken, werden keinerlei Daten an Pinterest
+            oder WhatsApp übertragen.
+          </p>
+          <p>
+            Klicken Sie eine Schaltfläche an, stellt Ihr Browser eine
+            Verbindung zu den Servern des jeweiligen Anbieters her und
+            übermittelt dabei mindestens die IP-Adresse, ggf. Browser-Header
+            sowie den Titel und die Bild-URL Ihres geteilten Werks. Die
+            weitere Verarbeitung erfolgt ausschließlich durch den jeweiligen
+            Anbieter nach dessen Datenschutzbestimmungen:
+          </p>
+          <ul>
+            <li>
+              <strong>Pinterest:</strong> Pinterest Europe Ltd., Palmerston
+              House, 2nd Floor, Fenian Street, Dublin 2, Irland —
+              Mutterunternehmen Pinterest, Inc. (USA). Datenschutz:{' '}
+              <a
+                href="https://policy.pinterest.com/de/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-coral"
+              >
+                policy.pinterest.com/de/privacy-policy
+              </a>
+            </li>
+            <li>
+              <strong>WhatsApp:</strong> WhatsApp Ireland Limited, 4 Grand
+              Canal Square, Grand Canal Harbour, Dublin 2, Irland —
+              Mutterunternehmen Meta Platforms, Inc. (USA). Datenschutz:{' '}
+              <a
+                href="https://www.whatsapp.com/legal/privacy-policy-eea"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-coral"
+              >
+                whatsapp.com/legal/privacy-policy-eea
+              </a>
+            </li>
+          </ul>
+          <p>
+            Bei beiden Anbietern kann eine Datenübermittlung in die USA
+            erfolgen. Datenübermittlungen werden auf Grundlage der
+            EU-Standardvertragsklauseln sowie ggf. des EU-US Data Privacy
+            Frameworks durchgeführt. Wir haben keinen Einfluss auf Art, Umfang
+            und Zweck der Datenverarbeitung durch die jeweiligen Anbieter.
+          </p>
+          <p>
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO
+            (Einwilligung durch aktives Klicken auf die Schaltfläche).
+          </p>
+
+          <h2>11. Kinder-Datenschutz</h2>
           <p>
             Diese Website richtet sich auch an Kinder. Es werden keine
             personalisierten Werbung ausgespielt, keine Tracking-Cookies
@@ -221,7 +278,7 @@ export default function DatenschutzPage() {
             <strong>Rechtsgrundlage:</strong> Art. 8 DSGVO.
           </p>
 
-          <h2>11. Ihre Rechte als betroffene Person</h2>
+          <h2>12. Ihre Rechte als betroffene Person</h2>
           <p>Sie haben jederzeit folgende Rechte:</p>
           <ul>
             <li>
@@ -259,7 +316,7 @@ export default function DatenschutzPage() {
             .
           </p>
 
-          <h2>12. Beschwerderecht bei der Aufsichtsbehörde</h2>
+          <h2>13. Beschwerderecht bei der Aufsichtsbehörde</h2>
           <p>
             Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde zu
             beschweren (Art. 77 DSGVO). Zuständig für den Verantwortlichen ist:
@@ -293,14 +350,14 @@ export default function DatenschutzPage() {
             </a>
           </p>
 
-          <h2>13. SSL-/TLS-Verschlüsselung</h2>
+          <h2>14. SSL-/TLS-Verschlüsselung</h2>
           <p>
             Diese Seite nutzt aus Sicherheitsgründen eine SSL/TLS-Verschlüsselung
             (HTTPS). Sie erkennen die Verschlüsselung am „https://“ in der
             Adresszeile Ihres Browsers.
           </p>
 
-          <h2>14. Keine Analyse-Tools, kein Tracking, keine Werbung</h2>
+          <h2>15. Keine Analyse-Tools, kein Tracking, keine Werbung</h2>
           <p>
             Es werden derzeit keine Webanalyse-Tools (z.&nbsp;B. Google
             Analytics, Matomo, Plausible) eingesetzt. Es werden keine
@@ -310,7 +367,7 @@ export default function DatenschutzPage() {
             aktualisiert.
           </p>
 
-          <h2>15. Änderungen dieser Datenschutzerklärung</h2>
+          <h2>16. Änderungen dieser Datenschutzerklärung</h2>
           <p>
             Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit
             sie stets den aktuellen rechtlichen Anforderungen entspricht oder
